@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowLeft, Download, FileText, Printer, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Download, FileText, Printer } from 'lucide-react'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -95,7 +95,6 @@ function ReportPage() {
             <>
               <span className="inline-flex items-center gap-1.5"><FileText aria-hidden className="size-3.5" />Version {report.version}</span>
               <span>Généré le {dateTime(report.createdAt)}</span>
-              <span className="inline-flex items-center gap-1.5"><ShieldCheck aria-hidden className="size-3.5 text-brand" />Aucune commande exécutée par SOCIA</span>
             </>
           }
         />
@@ -265,7 +264,7 @@ function ReportPage() {
             </Section>
 
             <footer className="border-t border-border pt-4 text-tiny leading-5 text-muted-foreground">
-              Document généré par SOCIA le {dateTime(content.generatedAt)}. Modèle : {content.providerName} · {content.modelId}. Version du prompt : soc-v1. Aucune commande n’a été exécutée par SOCIA. Les champs absents sont signalés « {NOT_PROVIDED} ».
+              Document généré par SOCIA le {dateTime(content.generatedAt)}. Modèle : {content.providerName} · {content.modelId}. Version du prompt : soc-v1. Les champs absents sont signalés « {NOT_PROVIDED} ».
             </footer>
           </div>
         </Card>

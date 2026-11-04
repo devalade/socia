@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router'
-import { CircleAlert, Eye, EyeOff, LockKeyhole } from 'lucide-react'
+import { CircleAlert, Eye, EyeOff } from 'lucide-react'
 import { z } from 'zod'
 import { Brand, BrandMark } from '@/components/brand'
 import { Button } from '@/components/ui/button'
@@ -291,11 +291,6 @@ function SignInPage() {
               {mode === 'signin' ? 'Créer un compte' : 'Se connecter'}
             </span>
           </button>
-
-          <p className="mt-3 flex items-start justify-center gap-2 text-micro leading-5 text-muted-foreground">
-            <LockKeyhole aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-            <span className="text-balance">Session chiffrée. Les mots de passe ne sont jamais stockés en clair.</span>
-          </p>
         </div>
       </main>
 

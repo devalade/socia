@@ -141,7 +141,6 @@ function LandingPage() {
                 </Button>
               </div>
               <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-2"><CheckCircle2 aria-hidden className="size-3.5 text-success" />Aucune requête exécutée</span>
                 <span className="inline-flex items-center gap-2"><LockKeyhole aria-hidden className="size-3.5 text-brand" />Clés chiffrées AES-GCM</span>
                 <span className="inline-flex items-center gap-2"><ShieldCheck aria-hidden className="size-3.5 text-info" />Verdict humain</span>
               </div>
@@ -300,7 +299,7 @@ function LandingPage() {
             <a href="#securite" className="hover:text-foreground">Sécurité</a>
             <Link to="/connexion" className="hover:text-foreground">Connexion</Link>
           </div>
-          <span>© 2026 SOCIA · Aucune requête exécutée.</span>
+          <span>© 2026 SOCIA.</span>
         </div>
       </footer>
     </div>

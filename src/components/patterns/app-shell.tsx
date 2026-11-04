@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useRouter, useRouterState } from '@tanstack/react-router'
-import { ChevronDown, FileSearch, LayoutDashboard, LogOut, Moon, Plus, Search, Settings, ShieldCheck, Sun } from 'lucide-react'
+import { ChevronDown, FileSearch, LayoutDashboard, LogOut, Moon, Plus, Search, Settings, Sun } from 'lucide-react'
 import { Brand } from '@/components/brand'
 import { PersonAvatar } from '@/components/premium/person'
 import { Truncate } from '@/components/premium/truncate'
@@ -216,11 +216,6 @@ export function AppShell({ shell, children }: { shell: ShellData; children: Reac
         <main data-print="page" className="mx-auto grid w-full max-w-page min-w-0 flex-1 grid-cols-1 content-start gap-5 p-4 md:p-6">
           {children}
         </main>
-
-        <footer data-print="hide" className="mx-auto flex w-full max-w-page flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-4 text-xs text-muted-foreground md:px-6">
-          <span>SOCIA · Espace analyste</span>
-          <span className="inline-flex items-center gap-1.5"><ShieldCheck aria-hidden className="size-3.5 text-brand" />Aucune requête exécutée par SOCIA</span>
-        </footer>
       </SidebarInset>
     </SidebarProvider>
   )
