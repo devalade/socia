@@ -30,7 +30,7 @@ Le premier compte créé devient administrateur. Les rôles sont vérifiés côt
 
 L’analyste colle ou importe un JSON d’alerte valide, de 1,5 Mo maximum. Le document original est conservé tel quel. SOCIA reconnaît les champs communs Elastic (règle, sévérité, horodatage, hôte, utilisateur, processus, IP, index, document) et signale les champs absents.
 
-Options : définition de la règle, observations, recherches déjà effectuées, modèle IA.
+Options : définition de la règle, observations, recherches déjà effectuées. Le modèle local est détecté automatiquement.
 
 ### 2. Analyse initiale
 
@@ -39,14 +39,14 @@ L’IA produit une analyse structurée :
 - explication de la règle et de l’événement déclencheur ;
 - reconstruction du contexte et chronologie ;
 - faits observés, déductions, hypothèses et informations manquantes ;
-- questions sans réponse et requêtes KQL justifiées ;
+- toutes les requêtes KQL utiles à l’investigation, proposées en une passe ;
 - appréciation provisoire, jamais présentée comme un verdict final.
 
 Sans résultat importé, SOCIA ne rend pas de verdict définitif (incident confirmé, faux positif ou activité légitime). L’appréciation reste « non déterminée » ou « à surveiller ».
 
 ### 3. Cycle d’investigation
 
-Pour chaque question sans réponse, SOCIA propose une requête KQL en lecture seule, avec un index cible, une plage temporelle et le signal attendu. L’analyste copie la requête, l’exécute dans son SIEM, puis importe le JSON du résultat.
+En une passe, SOCIA propose toutes les requêtes KQL en lecture seule nécessaires à l’investigation de la règle. Chaque requête a un index cible, une plage temporelle et le signal attendu. L’analyste les copie, les exécute dans son SIEM, puis importe les JSON.
 
 L’import conserve :
 
@@ -91,7 +91,7 @@ Une investigation clôturée peut être rouverte. Une investigation archivée es
 | `timeline_events` | Chronologie dérivée de la dernière analyse |
 | `comments` | Notes horodatées de l’analyste |
 | `reports` | Versions de rapport, contenu JSON et Markdown |
-| `ai_providers`, `ai_models` | Fournisseurs et catalogue détecté |
+| `ai_providers`, `ai_models` | Tables historiques, non utilisées par le modèle local |
 | `audit_logs` | Journal des actions sensibles |
 
 ## Règles de raisonnement IA
@@ -120,7 +120,7 @@ Les données non fiables sont délimitées par un tag dont le nom contient un no
 ## Critères d’acceptation
 
 1. Une investigation peut être créée depuis un JSON Elastic valide et l’original est conservé.
-2. Les modèles Workers AI sont détectés automatiquement et sélectionnables ; les fournisseurs compatibles OpenAI sont détectés via `/models`.
+2. Le modèle local Ollama est détecté automatiquement ; il est unique et aucun catalogue n’est exposé. Les requêtes KQL sont proposées en une passe.
 3. L’analyse initiale respecte la séparation faits / déductions / hypothèses / manques.
 4. Le cycle requête KQL, import JSON, réinterprétation fonctionne de bout en bout.
 5. Une investigation interrompue reprend avec l’intégralité de son contexte.

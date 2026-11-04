@@ -350,7 +350,7 @@ function Signals({ data }: { data: DashboardData }) {
       </dl>
       <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
         <span className={cn('size-1.5 rounded-full', data.aiHealthy ? 'bg-success' : 'bg-warning')} />
-        {data.aiHealthy ? 'Fournisseur opérationnel' : 'Fournisseur à configurer'} · {data.modelLabel}
+        {data.aiHealthy ? 'Ollama local joignable' : 'Ollama local non joignable'} · {data.modelLabel}
       </div>
     </div>
   )
@@ -359,24 +359,18 @@ function Signals({ data }: { data: DashboardData }) {
 function ProviderChain({ data }: { data: DashboardData }) {
   return (
     <div>
-      {data.providers.length === 0 ? (
-        <p className="text-sm leading-6 text-muted-foreground">Aucun fournisseur configuré. Ajoutez-en un dans Administration.</p>
-      ) : (
-        data.providers.map((provider) => (
-          <div key={provider.id} className="flex items-start justify-between gap-3 border-b border-border/70 py-3 first:pt-0 last:border-0 last:pb-0">
-            <div className="min-w-0">
-              <div className="text-label font-medium text-foreground">{provider.name}</div>
-              <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                {provider.kind === 'workers-ai' ? data.modelLabel : provider.baseUrl ?? 'Endpoint distant'}
-              </div>
-            </div>
-            <StatusBadge tone={!provider.isActive ? 'neutral' : provider.lastError ? 'warning' : 'success'}>
-              {provider.isActive ? 'Actif' : 'Inactif'}
-            </StatusBadge>
-          </div>
-        ))
-      )}
-      <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
+      <div className="flex items-start justify-between gap-3 border-b border-border/70 pb-3">
+        <div className="min-w-0">
+          <div className="text-label font-medium text-foreground">Ollama local</div>
+          <div className="mt-0.5 break-all font-mono text-xs text-muted-foreground">{data.modelEndpoint}</div>
+        </div>
+        <StatusBadge tone={data.aiHealthy ? 'success' : 'warning'}>{data.aiHealthy ? 'Joignable' : 'Non joignable'}</StatusBadge>
+      </div>
+      <div className="flex items-center justify-between gap-3 py-3">
+        <span className="text-small text-muted-foreground">Modèle</span>
+        <span className="text-right text-label font-medium text-foreground">{data.aiHealthy ? data.modelLabel : 'Aucun modèle détecté'}</span>
+      </div>
+      <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
         <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
           <ShieldCheck aria-hidden className="size-3.5 text-brand" />
           Échecs récents

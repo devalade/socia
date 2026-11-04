@@ -2,6 +2,7 @@ import handler from '@tanstack/react-start/server-entry'
 import { _validateEnvOnce } from 'void/env'
 import '../../env'
 import { auth } from './auth'
+import { detectLocalModel } from './ai/local'
 
 // Better Auth owns /api/auth/*. Everything else goes through TanStack Start.
 const SECURITY_HEADERS: Record<string, string> = {
@@ -42,6 +43,18 @@ export default {
       } catch {
         database = false
       }
+      let localModel: { available: boolean; model: string | null; endpoint: string; error: string | null } = {
+        available: false,
+        model: null,
+        endpoint: '',
+        error: null,
+      }
+      try {
+        const model = await detectLocalModel()
+        localModel = { available: model.available, model: model.available ? model.modelId : null, endpoint: model.endpoint, error: model.error }
+      } catch {
+        localModel.error = 'Détection Ollama impossible.'
+      }
       return secure(
         Response.json(
           {
@@ -49,6 +62,7 @@ export default {
             service: 'socia',
             database,
             aiBinding: Boolean((env as { AI?: unknown }).AI),
+            aiLocal: localModel,
             at: new Date().toISOString(),
           },
           { status: database ? 200 : 503, headers: { 'Cache-Control': 'no-store' } },

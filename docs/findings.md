@@ -72,7 +72,7 @@
 - `pnpm typecheck`: pass
 - `pnpm lint`: 0 warnings, 0 errors
 - `pnpm test`: 27 tests pass
-- Premium UI audit: 0 FAIL and 0 WARN on landing, login, dashboard, history, new investigation, investigation, report and settings at 1440x900 and 390x844, in dark and light. Settings tabs and the report print view are included. Off-grid spacing is 0% on the app routes; the landing is 2% and has no warning.
-- Manual real-AI run: initial analysis, import, reanalysis, conclusion, report, Markdown download
-- Production: `https://socia.devalade.me` still runs the previous interface. This rebuild has not been deployed.
-- Roles: the local audit account was promoted to admin only to audit `/app/settings`; the production role split is unchanged.
+- Premium UI audit: 48 checks on 12 routes at 1440x900 and 390x844, dark and light, with 0 FAIL and 0 WARN. Sign-in and sign-up add 8 checks, also 0 FAIL and 0 WARN. Off-grid spacing is 0% on the app routes; the landing is 2% and has no warning.
+- Local model protocol: a mock Ollama server verified `/api/tags` detection, `/health.aiLocal`, the settings test, and an initial analysis with 10 KQL queries in one pass. A real Ollama model was not installed on this machine.
+- Production: `https://socia.zecreator.com` and `https://socia.devalade.me` run the Signal Room build. A Cloudflare Worker cannot reach a local `127.0.0.1:11434`; the deployed `aiLocal` stays unavailable until `OLLAMA_BASE_URL` points to a reachable Ollama, or the app is run locally.
+- Roles: the local test account was promoted to admin only to audit `/app/settings`; the production role split is unchanged.

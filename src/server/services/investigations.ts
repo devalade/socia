@@ -22,7 +22,7 @@ import { audit } from '../audit'
 import { db } from '../db'
 import { forbidden, invalid, notFound } from '../errors'
 import type { Actor } from '../session'
-import { ensurePinnedModel, resolvePinnedModelForRun } from '../ai/providers'
+import { LOCAL_PROVIDER_ID, detectLocalModel, localModelConfig } from '../ai/local'
 
 export const MAX_ALERT_BYTES = 1_500_000
 export const MAX_RESULT_BYTES = 900_000
@@ -83,6 +83,7 @@ export type InvestigationDetail = {
   runs: AnalysisRunSummary[]
   reports: ReportSummary[]
   modelLabel: string
+  providerLabel: string
   canEdit: boolean
   securityFlags: string[]
 }
@@ -127,7 +128,8 @@ export async function createInvestigation(
   if ((input.priorSearches?.length ?? 0) > MAX_PRIOR_SEARCHES) throw invalid('Les recherches antérieures sont trop volumineuses.')
 
   // Resolves the provider and model, and proves the provider is usable before we persist anything.
-  const model = await resolvePinnedModelForRun()
+  const detected = await detectLocalModel()
+  const model = detected.available ? detected : localModelConfig()
   const title = (input.title?.trim() || alertTitle(parsed.summary)).slice(0, 160)
   const id = newId('inv')
   const flags = scanForPromptInjection(input.alertJson)
@@ -224,7 +226,6 @@ export async function getInvestigationDetail(actor: Actor, investigationId: stri
 
   const summary = JSON.parse(row.alertSummaryJson) as AlertSummary & { securityFlags?: string[] }
   const securityFlags = summary.securityFlags ?? scanForPromptInjection(row.alertRaw)
-  const pinned = await ensurePinnedModel()
 
   return {
     investigation: row,
@@ -258,7 +259,8 @@ export async function getInvestigationDetail(actor: Actor, investigationId: stri
       error: run.error,
     })),
     reports: reportRows,
-    modelLabel: row.modelId === pinned.modelId ? pinned.label : row.modelId,
+    modelLabel: row.modelId,
+    providerLabel: (analysisRow?.providerId ?? row.providerId) === LOCAL_PROVIDER_ID ? 'Ollama local' : (analysisRow?.providerId ?? row.providerId),
     canEdit: canEditInvestigation(actor.role, actor.userId, row.ownerId),
     securityFlags,
   }

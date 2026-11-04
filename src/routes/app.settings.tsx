@@ -23,12 +23,11 @@ import { PageHeader } from '@/components/patterns/page-header'
 import { SectionCard } from '@/components/patterns/section-card'
 import { PageSkeleton } from '@/components/patterns/route-states'
 import { EmptyState } from '@/components/patterns/empty-state'
-import { getAdminProvidersFn, testModelFn } from '@/server/fns/providers'
+import { getAdminProvidersFn, testLocalModelFn } from '@/server/fns/providers'
 import { getTeamFn, updateMemberRoleFn } from '@/server/fns/team'
 import { getAuditFn } from '@/server/fns/audit'
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, ROLES, type Role } from '@/lib/roles'
 import { dateTime } from '@/lib/dates'
-import { RelativeTime } from '@/components/patterns/relative-time'
 
 const search = z.object({
   tab: z.enum(['ia', 'equipe', 'audit', 'securite']).optional(),
@@ -63,10 +62,7 @@ const TABS = [
 
 function SettingsPage() {
   const { providerData, team, audit } = Route.useLoaderData()
-  const activeProviders = providerData.providers.filter((provider) => provider.isActive).length
   const model = providerData.model
-  const provider = providerData.providers.find((item) => item.id === model.providerId)
-  const activeModels = 1
   const filters = Route.useSearch()
   const router = useRouter()
   const navigate = Route.useNavigate()
@@ -78,10 +74,10 @@ function SettingsPage() {
     void navigate({ search: (previous) => ({ ...previous, tab: next }) })
   }
 
-  async function testPinnedModel() {
+  async function testLocalModel() {
     setBusy('test')
     try {
-      const result = await testModelFn({ data: { providerId: model.providerId, modelId: model.modelId } })
+      const result = await testLocalModelFn()
       toast.success('Test réussi', { description: result.detail || 'Le modèle a répondu.' })
     } catch (error) {
       toast.error('Test échoué', { description: error instanceof Error ? error.message : 'Erreur inconnue.' })
@@ -107,11 +103,11 @@ function SettingsPage() {
     <div className="grid grid-cols-1 gap-6">
       <PageHeader
         title="Administration"
-        description="L’espace d’administration contrôle les fournisseurs d’IA, les rôles et le journal d’audit. Il est réservé aux administrateurs et chaque action y est enregistrée."
+        description="L’espace d’administration contrôle le modèle local, les rôles et le journal d’audit. Il est réservé aux administrateurs et chaque action y est enregistrée."
         meta={
           <>
-            <span>{activeProviders} fournisseur{activeProviders > 1 ? 's' : ''} actif{activeProviders > 1 ? 's' : ''}</span>
-            <span>{activeModels} modèle{activeModels > 1 ? 's' : ''} actif{activeModels > 1 ? 's' : ''}</span>
+            <span>{model.available ? 'Ollama local joignable' : 'Ollama local non joignable'}</span>
+            <span>{model.available ? model.modelId : 'Aucun modèle détecté'}</span>
             <span>{team.length} membre{team.length > 1 ? 's' : ''}</span>
           </>
         }
@@ -130,51 +126,49 @@ function SettingsPage() {
 
       {tab === 'ia' && (
         <div className="grid min-w-0 grid-cols-1 gap-5">
-          <SectionCard title="Modèle d’analyse" description="Le modèle utilisé pour chaque analyse. Il est fixé pour garder des résultats comparables.">
+          <SectionCard title="Modèle local" description="Le modèle Ollama utilisé pour chaque analyse. Il est fixé pour garder des résultats comparables.">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3">
                 <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
                   <Sparkles aria-hidden className="size-4" />
                 </span>
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-foreground">{model.label}</div>
-                  <div className="mt-0.5 break-all font-mono text-xs text-muted-foreground">{model.modelId}</div>
+                  <div className="text-sm font-semibold text-foreground">{model.available ? model.label : 'Aucun modèle détecté'}</div>
+                  <div className="mt-0.5 break-all text-xs text-muted-foreground">{model.available ? `${model.providerName} · ${model.endpoint}` : model.endpoint}</div>
                 </div>
               </div>
-              <StatusBadge tone="success">Actif</StatusBadge>
+              <StatusBadge tone={model.available ? 'success' : 'warning'}>{model.available ? 'Joignable' : 'Non joignable'}</StatusBadge>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Button size="sm" variant="outline" onClick={() => void testPinnedModel()} loading={busy === 'test'} disabled={busy !== null}>
+              <Button size="sm" variant="outline" onClick={() => void testLocalModel()} loading={busy === 'test'} disabled={busy !== null || !model.available}>
                 <Sparkles aria-hidden />
                 Tester le modèle
               </Button>
-              <span className="text-xs text-muted-foreground">Un seul modèle pour toutes les analyses, sans catalogue à parcourir.</span>
+              <span className="text-xs text-muted-foreground">Un seul modèle local pour toutes les analyses, sans catalogue à parcourir.</span>
             </div>
+            {model.error && (
+              <p className="mt-4 rounded-lg border border-warning/25 bg-warning/8 p-3 text-xs leading-5 text-warning">
+                {model.error} Démarrez Ollama avec <code className="font-mono">ollama serve</code>, puis installez un modèle avec <code className="font-mono">ollama pull &lt;modèle&gt;</code>.
+              </p>
+            )}
           </SectionCard>
 
-          <SectionCard title="Fournisseur" description="Le binding Workers AI du compte Cloudflare fournit ce modèle.">
-            {provider ? (
-              <div className="flex min-w-0 items-start gap-3">
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
-                  <Sparkles aria-hidden className="size-4" />
-                </span>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="min-w-0 break-words text-sm font-medium text-foreground">{provider.name}</h3>
-                    <StatusBadge tone={!provider.isActive ? 'neutral' : provider.lastError ? 'warning' : 'success'}>
-                      {!provider.isActive ? 'Inactif' : provider.lastError ? 'Erreur' : 'Actif'}
-                    </StatusBadge>
-                  </div>
-                  <p className="mt-1 break-words text-xs text-muted-foreground">Binding Workers AI du compte Cloudflare</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {provider.lastCheckedAt ? <>Vérifié <RelativeTime value={provider.lastCheckedAt} /></> : 'Non vérifié'}
-                  </p>
-                  {provider.lastError && <p className="mt-2 rounded-md border border-warning/20 bg-warning/5 px-3 py-2 text-xs leading-5 text-warning">{provider.lastError}</p>}
+          <SectionCard title="Fournisseur" description="Ollama local, sur la machine de l’opérateur.">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
+                <Sparkles aria-hidden className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="min-w-0 break-words text-sm font-medium text-foreground">Ollama local</h3>
+                  <StatusBadge tone={model.available ? 'success' : 'warning'}>{model.available ? 'Joignable' : 'Non joignable'}</StatusBadge>
                 </div>
+                <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{model.endpoint}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {model.available ? 'Détecté sur l’API OpenAI-compatible de Ollama.' : 'Lancez Ollama sur cette machine pour activer l’analyse.'}
+                </p>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Fournisseur introuvable.</p>
-            )}
+            </div>
           </SectionCard>
         </div>
       )}

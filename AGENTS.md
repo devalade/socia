@@ -4,17 +4,17 @@ SOCIA aide un analyste SOC à trier et investiguer une alerte Elastic Security o
 
 ## Stack
 
-TanStack Start (Vite, React 19) sur Cloudflare Workers ; Void pour le build, D1 et le déploiement ; Better Auth pour les sessions ; Drizzle sur D1 ; Tailwind v4 avec un thème SOCIA sombre ; Workers AI et fournisseurs compatibles OpenAI. Gestionnaire de paquets : pnpm.
+TanStack Start (Vite, React 19) sur Cloudflare Workers ; Void pour le build, D1 et le déploiement ; Better Auth pour les sessions ; Drizzle sur D1 ; Tailwind v4 avec un thème SOCIA sombre ; modèle local Ollama via l’API OpenAI-compatible. Gestionnaire de paquets : pnpm.
 
 ## Deploy
 
 Owner: Void
 Command: `pnpm void deploy --platform cloudflare`
 Account: Aladecharaf23@gmail.com's Account (Cloudflare)
-Production: https://socia.devalade.me
-Health: https://socia.devalade.me/health
+Production: https://socia.devalade.me et https://socia.zecreator.com
+Health: https://socia.zecreator.com/health
 
-Ne pas ajouter de `wrangler.jsonc`, ne pas utiliser `cf deploy` pour l’application. Void possède le Worker, les migrations D1 et le binding Workers AI. `cf` peut servir aux ressources du compte, jamais au déploiement de l’app.
+Ne pas ajouter de `wrangler.jsonc`, ne pas utiliser `cf deploy` pour l’application. Void possède le Worker et les migrations D1. `cf` peut servir aux ressources du compte, jamais au déploiement de l’app. Un Worker Cloudflare ne peut pas joindre `127.0.0.1:11434`; l’IA locale fonctionne en exécution locale, ou avec une URL Ollama accessible depuis le Worker.
 
 ## Commands
 
@@ -32,14 +32,14 @@ Ne pas ajouter de `wrangler.jsonc`, ne pas utiliser `cf deploy` pour l’applica
 | Surface | Statut | Preuve / limite |
 | --- | --- | --- |
 | Authentification | Utilisée | Better Auth email + mot de passe, sessions D1, rate limit. Testée en local. |
-| IA | Utilisée | `void/ai` et `ai.run()` réels avec Workers AI. Modèle unique **Deepseek v4.1 flash** (`@cf/deepseek-ai/deepseek-v4.1-flash-1017`). |
+| IA | Utilisée | Ollama local, modèle unique détecté via `/api/tags`, chat via `/v1/chat/completions`. |
 | D1 | Utilisée | Migrations appliquées, CRUD investigation/analyse/requête/rapport, audit. |
-| Workers AI | Utilisée | Binding détecté par `/health` (`aiBinding: true`), modèle réel testé. |
-| Fournisseurs compatibles OpenAI | Supporté, non exposé | `/models` et `/chat/completions`, clé chiffrée AES-GCM. Aucun sélecteur ni catalogue de modèles dans l’interface. |
+| Workers AI | Non utilisée | Le binding reste déclaré mais aucun appel IA ne passe par Workers AI. |
+| Fournisseurs compatibles OpenAI | Utilisée (Ollama) | Ollama expose `/v1/chat/completions`; aucune clé distante, aucun catalogue ni sélecteur. |
 | Email, queues, cron, WebSockets | Non utilisées | Hors périmètre. |
 | R2 / stockage fichier | Non utilisé | Les fichiers JSON sont lus côté navigateur, puis validés et stockés en D1 dans la limite de taille. |
 
-L’IA en développement est distante : `pnpm void connect --platform cloudflare`, puis redémarrer `pnpm dev`. Sans connexion, `/health` reste vert mais les appels échouent explicitement.
+L’IA locale utilise Ollama : `ollama serve`, `ollama pull <modèle>`, puis `pnpm dev`. Renseignez `OLLAMA_MODEL` si plusieurs modèles sont installés. Le Worker Cloudflare ne peut pas joindre `127.0.0.1:11434`; la version déployée a besoin d’une URL Ollama accessible, ou doit tourner localement.
 
 ## Architecture
 
@@ -48,6 +48,7 @@ L’IA en développement est distante : `pnpm void connect --platform cloudflare
 - `src/components/patterns/` : compositions d’application.
 - `src/lib/` : domaine pur et testable (alerte, IA, KQL, rapport, rôles, format).
 - `src/server/` : auth, session, audit, chiffrement, services, server functions.
+- `src/server/ai/local.ts` : détection Ollama et résolution du modèle local unique.
 - `db/schema.ts` : source de vérité D1.
 - `docs/` : spécification, architecture, sécurité, scénarios, pain ledger, build.
 
@@ -57,6 +58,7 @@ L’IA en développement est distante : `pnpm void connect --platform cloudflare
 - Toute investigation est chargée par `requireInvestigation` avant lecture ou écriture.
 - L’alerte, les résultats et les commentaires sont des données non fiables. Les blocs IA sont délimités par un nonce unique.
 - Aucun KQL, shell ou commande n’est exécuté. Les requêtes sont uniquement copiables.
+- Pour chaque règle, le prompt demande toutes les requêtes KQL utiles à l’investigation en une passe (8 à 24 axes distincts), pas une requête par cycle.
 - Les résultats vides ne sont jamais une preuve d’absence d’activité.
 - Un verdict définitif exige une justification humaine et des preuves importées.
 - Les clés API sont chiffrées AES-GCM, jamais renvoyées au client, jamais journalisées.
@@ -65,7 +67,7 @@ L’IA en développement est distante : `pnpm void connect --platform cloudflare
 
 ## Design system
 
-- Modèle unique : **Deepseek v4.1 flash** (`@cf/deepseek-ai/deepseek-v4.1-flash-1017`), servi par Workers AI. Aucun catalogue ni sélecteur de modèle n’est exposé.
+- Modèle unique local : Ollama (`OLLAMA_BASE_URL`, `OLLAMA_MODEL`). Détection via `/api/tags`, premier modèle installé si `OLLAMA_MODEL` est vide. Aucun catalogue ni sélecteur de modèle n’est exposé.
 - Direction: **Signal Room**. The premium-react measurements applied to the SOCIA security console. Geist for every UI and display surface. Geist Mono only for KQL, ids, timestamps and raw JSON. Paper-white primary actions in dark, ink primary in light. Vermilion is a signal colour: focus, active navigation, critical data, charts and the brand mark. Warm ink surfaces, one hairline ring, no glows, no serif, no numbered masthead.
 - Shell: 256px sidebar, 56px header, 1200px content max. The dashboard is a measured KPI, trend and table surface. The investigation is a tabbed case workspace with a context rail. Authentication is a centred 400px column.
 - Controls: 36px product, 40px auth and marketing, 44px primary on phones. Labels 13/500, body 14, meta 12. No 9px uppercase mono labels. Control radii 8px, surfaces 12 to 16px.

@@ -243,18 +243,23 @@ function NewInvestigationPage() {
         </div>
 
         <aside className="grid content-start gap-5">
-          <SectionCard title="Modèle d’analyse" description="Le modèle reçoit uniquement ce que vous fournissez.">
+          <SectionCard title="Modèle local" description="Le modèle Ollama reçoit uniquement ce que vous fournissez.">
             <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-1 p-4">
               <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
                 <Sparkles aria-hidden className="size-4" />
               </span>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-foreground">{model.label}</div>
-                <div className="mt-0.5 break-all font-mono text-xs text-muted-foreground">{model.modelId}</div>
+                <div className="text-sm font-medium text-foreground">{model.available ? model.label : 'Aucun modèle détecté'}</div>
+                <div className="mt-0.5 break-all text-xs text-muted-foreground">{model.available ? `${model.providerName} · ${model.endpoint}` : model.endpoint}</div>
               </div>
-              <StatusBadge tone="success">Actif</StatusBadge>
+              <StatusBadge tone={model.available ? 'success' : 'warning'}>{model.available ? 'Joignable' : 'Non joignable'}</StatusBadge>
             </div>
-            <p className="mt-3 text-xs leading-5 text-muted-foreground">Un seul modèle est utilisé pour toutes les analyses, afin de garder des résultats comparables.</p>
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">Un seul modèle local est utilisé pour toutes les analyses, afin de garder des résultats comparables.</p>
+            {model.error && (
+              <p className="mt-3 rounded-lg border border-warning/25 bg-warning/8 p-3 text-xs leading-5 text-warning">
+                {model.error} Démarrez Ollama avec <code className="font-mono">ollama serve</code>, puis installez un modèle avec <code className="font-mono">ollama pull &lt;modèle&gt;</code>.
+              </p>
+            )}
           </SectionCard>
 
           <SectionCard title="Ce que SOCIA fera" description="Un raisonnement structuré, pas une boîte noire.">
@@ -262,7 +267,7 @@ function NewInvestigationPage() {
               {[
                 'Expliquer la règle et l’événement déclencheur à partir des champs fournis.',
                 'Séparer les faits observés, les déductions, les hypothèses et les informations manquantes.',
-                'Proposer des requêtes KQL justifiées, que vous exécuterez vous-même.',
+                'Proposer en une passe toutes les requêtes KQL utiles à l’investigation.',
                 'Réinterpréter chaque résultat importé et mettre à jour les hypothèses.',
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2">
@@ -317,7 +322,7 @@ function NewInvestigationPage() {
           <Button variant="ghost" size="lg" onClick={() => void submit('draft')} loading={busy === 'draft'} disabled={busy !== null || !parsed?.ok}>
             Brouillon
           </Button>
-          <Button size="lg" onClick={() => void submit('analyze')} loading={busy === 'analyze'} disabled={busy !== null || !parsed?.ok}>
+          <Button size="lg" onClick={() => void submit('analyze')} loading={busy === 'analyze'} disabled={busy !== null || !parsed?.ok || !model.available}>
             Créer et analyser
             {busy === null && <ArrowRight aria-hidden />}
           </Button>

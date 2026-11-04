@@ -6,10 +6,10 @@ import { audit } from '../audit'
 import { db } from '../db'
 import type { Actor } from '../session'
 import { refuse } from '../session'
+import { detectLocalModel } from '../ai/local'
 import { sealApiKey } from '../vault'
 import {
   detectModels,
-  ensurePinnedModel,
   listProviders,
   testProviderModel,
   validateBaseUrl,
@@ -102,11 +102,10 @@ export async function testModel(actor: Actor, providerId: string, modelId: strin
 }
 
 export async function adminProviderData(actor: Actor): Promise<{
-  providers: Awaited<ReturnType<typeof listProviders>>
-  model: Awaited<ReturnType<typeof ensurePinnedModel>>
+  model: Awaited<ReturnType<typeof detectLocalModel>>
 }> {
   refuse(actor, 'provider.manage')
-  return { providers: await listProviders(), model: await ensurePinnedModel() }
+  return { model: await detectLocalModel(true) }
 }
 
 export async function modelHistory(): Promise<{ id: string; providerId: string; modelId: string; label: string; isActive: boolean }[]> {

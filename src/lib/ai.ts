@@ -66,7 +66,7 @@ export const analysisSchema = z.object({
   deductions: stringList,
   hypotheses: z.array(hypothesisSchema).max(30).default([]),
   missingInformation: stringList,
-  investigationAxes: z.array(investigationQuerySchema).max(20).default([]),
+  investigationAxes: z.array(investigationQuerySchema).max(30).default([]),
   provisionalAssessment: provisionalAssessmentSchema.default({
     verdict: 'undetermined',
     confidence: 0,
@@ -151,7 +151,7 @@ function dedupeAnalysis(analysis: InvestigationAnalysis): InvestigationAnalysis 
   const axes = analysis.investigationAxes
     .filter((query, index, all) => all.findIndex((q) => q.kql.trim() === query.kql.trim()) === index)
     .filter((query) => isLikelyKql(query.kql))
-    .slice(0, 12)
+    .slice(0, 30)
 
   return {
     ...analysis,

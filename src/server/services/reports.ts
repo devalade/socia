@@ -10,6 +10,7 @@ import { db } from '../db'
 import { invalid, notFound } from '../errors'
 import type { Actor } from '../session'
 import { requireInvestigation } from './investigations'
+import { LOCAL_PROVIDER_ID } from '../ai/local'
 
 function parseSummary(value: string): AlertSummary {
   return JSON.parse(value) as AlertSummary
@@ -86,7 +87,7 @@ export async function generateReport(
     createdAt: investigation.createdAt,
     closedAt: investigation.closedAt,
     modelId: investigation.modelId,
-    providerName: provider[0]?.name ?? investigation.providerId,
+    providerName: investigation.providerId === LOCAL_PROVIDER_ID ? 'Ollama local' : provider[0]?.name ?? investigation.providerId,
     alertSummary: parseSummary(investigation.alertSummaryJson),
     analysis: parseAnalysis(currentAnalysis?.contentJson ?? null),
     hypotheses: reportHypotheses,

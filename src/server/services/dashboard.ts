@@ -5,7 +5,7 @@ import { can } from '../../lib/roles'
 import { db } from '../db'
 import { forbidden } from '../errors'
 import type { Actor } from '../session'
-import { ensurePinnedModel, listProviders, type ProviderView } from '../ai/providers'
+import { detectLocalModel } from '../ai/local'
 
 export type DashboardData = {
   generatedAt: string
@@ -42,9 +42,9 @@ export type DashboardData = {
     pendingQueries: number
   }[]
   topRules: { name: string; count: number }[]
-  providers: ProviderView[]
   modelCount: number
   modelLabel: string
+  modelEndpoint: string
   teamCount: number
   aiHealthy: boolean
 }
@@ -71,9 +71,8 @@ export async function getDashboard(actor: Actor): Promise<DashboardData> {
     .from(queries)
     .where(eq(queries.status, 'proposed'))
   const ownerIds = Array.from(new Set(rows.map((row) => row.ownerId)))
-  const [providers, pinned, team, owners] = await Promise.all([
-    listProviders(),
-    ensurePinnedModel(),
+  const [local, team, owners] = await Promise.all([
+    detectLocalModel(),
     db.select({ userId: profiles.userId, role: profiles.role }).from(profiles),
     ownerIds.length
       ? db.select({ id: user.id, name: user.name }).from(user).where(inArray(user.id, ownerIds))
@@ -165,7 +164,7 @@ export async function getDashboard(actor: Actor): Promise<DashboardData> {
       pendingQueries: pendingByInvestigation.get(row.id) ?? 0,
     }))
 
-  const aiHealthy = Boolean(pinned) && providers.some((provider) => provider.isActive && !provider.lastError)
+  const aiHealthy = local.available
 
   return {
     generatedAt: new Date().toISOString(),
@@ -186,9 +185,9 @@ export async function getDashboard(actor: Actor): Promise<DashboardData> {
     recent,
     queue,
     topRules,
-    providers,
-    modelCount: pinned ? 1 : 0,
-    modelLabel: pinned.label,
+    modelCount: local.available ? 1 : 0,
+    modelLabel: local.label,
+    modelEndpoint: local.endpoint,
     teamCount: team.length,
     aiHealthy,
   }
@@ -205,7 +204,7 @@ export type ShellData = {
 export async function getShellData(actor: Actor): Promise<ShellData> {
   const rows = await db.select().from(investigations).orderBy(desc(investigations.updatedAt)).limit(80)
   const pending = await db.select({ id: queries.id }).from(queries).where(eq(queries.status, 'proposed'))
-  const [providers, pinned] = await Promise.all([listProviders(), ensurePinnedModel()])
+  const local = await detectLocalModel()
   return {
     viewer: { userId: actor.userId, name: actor.name, email: actor.email, role: actor.role },
     recent: rows.slice(0, 5).map((row) => ({
@@ -216,6 +215,6 @@ export async function getShellData(actor: Actor): Promise<ShellData> {
     })),
     openCount: rows.filter((row) => ['draft', 'analyzing', 'in_progress'].includes(row.status)).length,
     pendingQueries: pending.length,
-    aiHealthy: Boolean(pinned) && providers.some((provider) => provider.isActive && !provider.lastError),
+    aiHealthy: local.available,
   }
 }

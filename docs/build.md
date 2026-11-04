@@ -4,7 +4,7 @@
 
 - Node.js 22.18 ou plus récent (le CLI `cf` en a besoin ; Void fonctionne avec Node 22+).
 - pnpm 11.
-- Un compte Cloudflare avec Workers AI.
+- Un compte Cloudflare pour le Worker et D1. Un Ollama local pour l’analyse.
 - `void` installé localement via le paquet du projet.
 
 ## Installation
@@ -19,7 +19,7 @@ pnpm dev
 
 Ouvrir `http://localhost:3000`. Le premier compte créé devient administrateur.
 
-L’IA locale utilise le binding distant Workers AI. Il faut avoir connecté Void à Cloudflare :
+L’IA utilise Ollama local. Démarrez-le et vérifiez `/health` : le champ `aiLocal` doit indiquer `available: true`.
 
 ```bash
 pnpm void cloudflare status
@@ -91,7 +91,7 @@ pnpm void project status
 pnpm void project logs
 ```
 
-Le premier déploiement crée la base D1 et le binding Workers AI. `void.lock.json` enregistre les ressources et doit être commité.
+Le premier déploiement crée la base D1. `void.lock.json` enregistre les ressources et doit être commité.
 
 ### Rollback
 
@@ -114,7 +114,7 @@ Ajouter le domaine dans la configuration Cloudflare ou via `void domain`. Vérif
 | --- | --- | --- |
 | `AI requires authentication` | Void n’est pas connecté au compte Cloudflare | `pnpm void connect --platform cloudflare`, redémarrer |
 | `/health` renvoie 503 | D1 indisponible ou migration absente | `pnpm void db migrate`, vérifier les logs |
-| Les modèles ne s’affichent pas | Détection échouée | Administration > Modèles IA > Détecter, lire `lastError` |
+| Le modèle local n’est pas détecté | Ollama n’est pas joignable | Démarrer `ollama serve`, vérifier `OLLAMA_BASE_URL` et `/health` |
 | Session absente après déploiement | `BETTER_AUTH_URL` incorrect | Corriger le secret, redéployer |
 | Hydratation incohérente | Ancien cache de dev | Redémarrer Vite, vider le cache navigateur |
 | Erreur d’insertion D1 | Migration non appliquée | `pnpm void db generate && pnpm void db migrate` |

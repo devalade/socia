@@ -9,7 +9,8 @@ import { audit } from '../audit'
 import { db } from '../db'
 import { AppError, invalid, safeProviderError } from '../errors'
 import type { Actor } from '../session'
-import { resolvePinnedModelForRun, runChatCompletion } from '../ai/providers'
+import { runChatCompletion } from '../ai/providers'
+import { resolveLocalModelForRun } from '../ai/local'
 import { requireInvestigation } from './investigations'
 
 export type AnalysisResult = {
@@ -76,7 +77,7 @@ export async function runAnalysis(actor: Actor, investigationId: string): Promis
     })
   }
 
-  const model = await resolvePinnedModelForRun()
+  const model = await resolveLocalModelForRun()
   if (investigation.modelId !== model.modelId || investigation.providerId !== model.providerId) {
     await db
       .update(investigations)
@@ -149,7 +150,7 @@ export async function runAnalysis(actor: Actor, investigationId: string): Promis
 
   let completion
   try {
-    completion = await runChatCompletion({ model, system, user })
+    completion = await runChatCompletion({ model, system, user, maxTokens: 8192 })
   } catch (error) {
     const message = error instanceof AppError ? error.message : safeProviderError(error)
     await db

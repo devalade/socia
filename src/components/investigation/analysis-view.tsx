@@ -25,7 +25,7 @@ export function AnalysisView({ analysis }: { analysis: InvestigationAnalysis }) 
   return (
     <div className="grid gap-5">
       <SectionCard title="Synthèse opérationnelle">
-        <p className="text-base leading-7 text-foreground">{analysis.summary}</p>
+        <p className="max-w-reading text-base leading-7 text-foreground">{analysis.summary}</p>
       </SectionCard>
 
       <div className="grid gap-5 lg:grid-cols-3">

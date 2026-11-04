@@ -11,14 +11,13 @@ TanStack Start (React 19, Vite, SSR)
   ▼
 Services serveur
   ├── investigations, analyses, requêtes, rapports, audit
-  ├── fournisseurs IA (Workers AI / OpenAI compatible)
+  ├── modèle local Ollama (API OpenAI-compatible)
   └── D1 via Drizzle
         │
-        ├── Workers AI (binding Cloudflare)
-        └── endpoint OpenAI compatible (HTTPS, clé chiffrée)
+        └── Ollama local (127.0.0.1:11434 ou OLLAMA_BASE_URL)
 ```
 
-Le déploiement est possédé par Void. `void deploy --platform cloudflare` construit le Worker, applique les migrations D1, provisionne le binding Workers AI et publie l’application. Aucun `wrangler.jsonc` n’est présent.
+Le déploiement est possédé par Void. `void deploy --platform cloudflare` construit le Worker, applique les migrations D1 et publie l’application. Le Worker ne peut pas joindre un Ollama sur `127.0.0.1`; l’IA locale tourne avec l’application en local, ou avec une URL Ollama accessible. Aucun `wrangler.jsonc` n’est présent.
 
 ## Stack
 
@@ -29,7 +28,7 @@ Le déploiement est possédé par Void. `void deploy --platform cloudflare` cons
 | SDK et déploiement | Void 1.2.1 |
 | Base | Cloudflare D1, Drizzle ORM |
 | Auth | Better Auth 1.7, email + mot de passe, sessions D1 |
-| IA | `void/ai` : Workers AI + fournisseurs compatibles OpenAI |
+| IA | Ollama local : `/api/tags` et `/v1/chat/completions` |
 | UI | Tailwind v4, shadcn/ui, composants premium mesurés |
 | Tests | Vitest pour le domaine, Playwright pour le smoke |
 
@@ -46,7 +45,7 @@ Le déploiement est possédé par Void. `void deploy --platform cloudflare` cons
 
 1. `runAnalysisFn` valide l’identifiant et résout l’acteur depuis la session.
 2. `requireInvestigation` vérifie le droit de lecture puis d’écriture (propriétaire ou admin).
-3. Le modèle et le fournisseur sont résolus depuis `ai_providers` et `ai_models`.
+3. Le modèle local est résolu depuis `OLLAMA_BASE_URL` et `OLLAMA_MODEL`; le premier modèle installé est utilisé si `OLLAMA_MODEL` est vide.
 4. `buildSystemPrompt` et `buildUserPrompt` assemblent le contexte :
    - alerte brute, champs extraits, champs absents ;
    - règle, observations, recherches antérieures ;
@@ -59,7 +58,7 @@ Le déploiement est possédé par Void. `void deploy --platform cloudflare` cons
 9. Le run est enregistré avec son JSON, ses tokens, sa durée et une éventuelle erreur.
 10. Les hypothèses courantes sont marquées non courantes, les nouvelles sont insérées.
 11. La chronologie dérivée est remplacée.
-12. Les nouvelles requêtes KQL sont filtrées (pas de SPL/SQL/pipeline), dédupliquées puis ajoutées.
+12. Toutes les requêtes KQL utiles sont demandées en une passe, filtrées (pas de SPL/SQL/pipeline), dédupliquées puis ajoutées.
 13. L’investigation pointe vers le nouveau run et passe en investigation.
 
 Une erreur d’appel ou de parsing laisse un run `failed`, remet le statut précédent et n’efface aucune donnée.
@@ -85,22 +84,16 @@ Le rapport n’est pas une nouvelle génération IA. Il est construit de façon 
 
 Avantages : structure stable, absence d’hallucination dans le rapport, champs manquants explicites, export Markdown identique à l’affichage. Le PDF utilise l’impression navigateur et une feuille `@media print`.
 
-## Fournisseurs IA
+## Modèle local
 
-### Workers AI
+### Ollama
 
-- Fournisseur intégré, sans clé à gérer.
-- Catalogue lu via `ai.models({ task: 'Text Generation' })`.
-- Modèles filtrés (pas d’embeddings, TTS, images, guard) et classés « conseillé » par heuristique.
-- Détection automatique au premier chargement authentifié, puis cache D1.
-
-### Compatible OpenAI
-
-- L’administrateur fournit un nom, une URL HTTPS et une clé.
-- L’URL est validée : HTTPS obligatoire en production, adresses privées et métadonnées cloud refusées.
-- La clé est chiffrée en AES-GCM avant stockage (`AI_KEY_ENCRYPTION_KEY` ou dérivation de `BETTER_AUTH_SECRET`).
-- Le catalogue est lu via `GET /models` ; les appels utilisent `POST /chat/completions`, avec repli sans `response_format` si le fournisseur le refuse.
-- Les erreurs sont expurgées avant stockage ou affichage.
+- Le modèle est détecté via `OLLAMA_BASE_URL` (par défaut `http://127.0.0.1:11434`) et `/api/tags`.
+- `OLLAMA_MODEL` fixe le modèle ; sinon le premier modèle installé est utilisé.
+- L’appel passe par l’API OpenAI-compatible de Ollama, `POST /v1/chat/completions`.
+- Aucun catalogue ni sélecteur de modèle n’est exposé.
+- Les requêtes KQL sont demandées en une passe (8 à 24 axes), puis filtrées et dédupliquées.
+- Un Worker Cloudflare ne peut pas joindre `127.0.0.1`. La version déployée a besoin d’une URL Ollama accessible, ou doit être exécutée localement.
 
 ## Données et limites
 

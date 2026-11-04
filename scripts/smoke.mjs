@@ -62,7 +62,7 @@ try {
   step('administration (admin only)')
   await page.goto(`${base}/app/settings?tab=ia`, { waitUntil: 'networkidle' })
   if (page.url().includes('/app/settings')) {
-    await page.getByText('Deepseek v4.1 flash').first().waitFor({ timeout: 20_000 })
+    await page.getByText('Ollama local').first().waitFor({ timeout: 20_000 })
     await page.screenshot({ path: path.join(shots, 'settings.png'), fullPage: true })
   }
 

@@ -1,8 +1,8 @@
 # SOCIA
 
-**Live: https://socia.devalade.me**
+**Live: https://socia.zecreator.com** et **https://socia.devalade.me**
 
-> The live URL currently serves the previous interface. The Signal Room rebuild is local until a deploy is approved.
+> L’interface est en ligne. Le modèle IA est local : lancez Ollama sur la machine, ou renseignez `OLLAMA_BASE_URL` avec une URL joignable depuis le Worker pour la version déployée.
 
 **L’analyste garde la main. L’IA apporte la clarté.**
 
@@ -21,9 +21,9 @@ SOCIA ne se connecte ni à Kibana ni à Elasticsearch et n’exécute aucune req
 ## Ce que fait SOCIA
 
 - Importe une alerte Elastic JSON et conserve le document original.
-- Utilise un modèle unique, Deepseek v4.1 flash, pour garder des analyses comparables.
+- Utilise un modèle local unique, détecté via Ollama, pour garder des analyses comparables.
 - Produit une analyse qui sépare faits observés, déductions, hypothèses et informations manquantes.
-- Propose des questions sans réponse et des requêtes KQL Kibana justifiées, en lecture seule.
+- Propose en une passe toutes les requêtes KQL Kibana utiles à l’investigation, en lecture seule.
 - Importe les résultats JSON de l’analyste, les résume et réinterprète les hypothèses.
 - Conserve l’état complet : alerte, analyses, hypothèses, requêtes, résultats, commentaires.
 - Clôture avec un verdict humain, une confiance et une justification.
@@ -37,7 +37,7 @@ SOCIA ne se connecte ni à Kibana ni à Elasticsearch et n’exécute aucune req
 - Un résultat vide n’est jamais interprété comme une absence d’activité.
 - L’IA ne rend pas de verdict définitif sans résultat importé.
 - Le verdict final est une décision d’analyste.
-- Clés API chiffrées AES-GCM, jamais renvoyées au client.
+- Aucune clé de modèle distant : Ollama reste sur la machine.
 - Rôles administrateur, analyste et lecteur vérifiés côté serveur.
 
 ## Stack
@@ -49,7 +49,7 @@ SOCIA ne se connecte ni à Kibana ni à Elasticsearch et n’exécute aucune req
 | SDK et déploiement | Void |
 | Base | Cloudflare D1 + Drizzle |
 | Auth | Better Auth |
-| IA | Workers AI, modèle unique Deepseek v4.1 flash |
+| IA | Ollama local, modèle unique détecté (`OLLAMA_BASE_URL`, `OLLAMA_MODEL`) |
 | UI | Tailwind v4, primitives shadcn et compositions premium mesurées |
 | Tests | Vitest, Playwright |
 
@@ -57,16 +57,15 @@ SOCIA ne se connecte ni à Kibana ni à Elasticsearch et n’exécute aucune req
 
 ```bash
 pnpm install
-cp .env.example .env
 pnpm void db migrate
-pnpm void cloudflare status
-pnpm void connect --platform cloudflare
+ollama serve
+ollama pull <modèle>
 pnpm dev
 ```
 
 Ouvrir `http://localhost:3000`. Le premier compte créé devient administrateur.
 
-L’IA en développement utilise le binding distant Workers AI. Void doit être connecté au compte Cloudflare et le serveur redémarré après la connexion.
+L’IA utilise Ollama sur la machine. Démarrez-le avec `ollama serve`, installez un modèle avec `ollama pull <modèle>`, puis renseignez `OLLAMA_MODEL` si plusieurs modèles sont présents. Le Worker Cloudflare ne peut pas joindre `127.0.0.1:11434`; la version déployée a besoin d’une URL Ollama accessible, ou doit être exécutée localement.
 
 ## Vérifications
 
@@ -77,7 +76,7 @@ pnpm test
 pnpm build
 ```
 
-Le parcours complet a été vérifié avec un vrai appel Workers AI : analyse initiale, import de résultat, réanalyse, clôture et rapport versionné.
+Le parcours complet a été vérifié avec un modèle Ollama local : analyse initiale, requêtes KQL en une passe, import de résultat, réanalyse, clôture et rapport versionné.
 
 ## Déploiement
 
@@ -86,11 +85,12 @@ Le propriétaire du déploiement est Void.
 ```bash
 pnpm void secret put BETTER_AUTH_SECRET
 pnpm void secret put BETTER_AUTH_URL=https://votre-domaine
-pnpm void secret put AI_KEY_ENCRYPTION_KEY
 pnpm void deploy --platform cloudflare
 ```
 
 Détails, rollback et dépannage : [docs/build.md](docs/build.md).
+
+Le Worker ne peut pas joindre un Ollama qui écoute sur `127.0.0.1`. Pour la version déployée, exposez Ollama via une URL accessible et renseignez `OLLAMA_BASE_URL`.
 
 ## Documentation
 

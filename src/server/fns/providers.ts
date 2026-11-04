@@ -1,7 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { requireActor, requireAdmin } from '../session'
-import { ensurePinnedModel } from '../ai/providers'
+import { runChatCompletion } from '../ai/providers'
+import { detectLocalModel, resolveLocalModelForRun } from '../ai/local'
 import {
   adminProviderData,
   createOpenAiProvider,
@@ -13,7 +14,19 @@ import {
 
 export const getModelOptionsFn = createServerFn({ method: 'GET' }).handler(async () => {
   await requireActor()
-  return { model: await ensurePinnedModel() }
+  return { model: await detectLocalModel(true) }
+})
+
+export const testLocalModelFn = createServerFn({ method: 'POST' }).handler(async () => {
+  await requireAdmin()
+  const model = await resolveLocalModelForRun()
+  const result = await runChatCompletion({
+    model,
+    system: 'Tu réponds uniquement par le mot OK.',
+    user: 'Réponds OK.',
+    maxTokens: 16,
+  })
+  return { ok: result.text.trim().length > 0, detail: result.text.trim().slice(0, 120) }
 })
 
 export const getAdminProvidersFn = createServerFn({ method: 'GET' }).handler(async () =>

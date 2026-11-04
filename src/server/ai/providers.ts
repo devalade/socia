@@ -10,12 +10,6 @@ import { openApiKey } from '../vault'
 
 export const WORKERS_AI_PROVIDER_ID = 'workers-ai'
 
-export const PINNED_MODEL = {
-  providerId: WORKERS_AI_PROVIDER_ID,
-  modelId: '@cf/deepseek-ai/deepseek-v4.1-flash-1017',
-  label: 'Deepseek v4.1 flash',
-} as const
-
 export type ProviderKind = 'workers-ai' | 'openai-compatible'
 
 export type ModelView = {
@@ -107,71 +101,6 @@ export async function ensureWorkersAiProvider(): Promise<void> {
       isActive: true,
     })
     .onConflictDoNothing()
-}
-
-export async function ensurePinnedModel(): Promise<ModelView> {
-  await ensureWorkersAiProvider()
-  const [existing] = await db
-    .select()
-    .from(aiModels)
-    .where(and(eq(aiModels.providerId, PINNED_MODEL.providerId), eq(aiModels.modelId, PINNED_MODEL.modelId)))
-    .limit(1)
-
-  if (existing) {
-    if (existing.label !== PINNED_MODEL.label || !existing.isActive || !existing.isRecommended) {
-      await db
-        .update(aiModels)
-        .set({ label: PINNED_MODEL.label, isActive: true, isRecommended: true })
-        .where(eq(aiModels.id, existing.id))
-    }
-    return modelView({ ...existing, label: PINNED_MODEL.label, isActive: true, isRecommended: true })
-  }
-
-  const id = newId('mdl', 16)
-  await db
-    .insert(aiModels)
-    .values({
-      id,
-      providerId: PINNED_MODEL.providerId,
-      modelId: PINNED_MODEL.modelId,
-      label: PINNED_MODEL.label,
-      task: 'Text Generation',
-      isRecommended: true,
-      isActive: true,
-      detectedAt: new Date().toISOString(),
-    })
-    .onConflictDoUpdate({
-      target: [aiModels.providerId, aiModels.modelId],
-      set: { label: PINNED_MODEL.label, isActive: true, isRecommended: true },
-    })
-
-  const [row] = await db
-    .select()
-    .from(aiModels)
-    .where(and(eq(aiModels.providerId, PINNED_MODEL.providerId), eq(aiModels.modelId, PINNED_MODEL.modelId)))
-    .limit(1)
-  if (!row) throw new Error('Le modèle Deepseek v4.1 flash n’a pas pu être enregistré.')
-  return modelView(row)
-}
-
-function modelView(row: typeof aiModels.$inferSelect): ModelView {
-  return {
-    id: row.id,
-    providerId: row.providerId,
-    providerName: 'Workers AI (Cloudflare)',
-    providerKind: 'workers-ai',
-    modelId: row.modelId,
-    label: PINNED_MODEL.label,
-    task: row.task,
-    isRecommended: true,
-    isActive: row.isActive,
-  }
-}
-
-/** The single model every analysis uses. */
-export async function resolvePinnedModelForRun(): Promise<ModelForRun> {
-  await ensurePinnedModel()
-  return resolveModelForRun(PINNED_MODEL.providerId, PINNED_MODEL.modelId)
 }
 
 export async function listProviders(): Promise<ProviderView[]> {
