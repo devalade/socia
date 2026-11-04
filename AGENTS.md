@@ -4,17 +4,11 @@ SOCIA aide un analyste SOC à trier et investiguer une alerte Elastic Security o
 
 ## Stack
 
-TanStack Start (Vite, React 19) sur Cloudflare Workers ; Void pour le build, D1 et le déploiement ; Better Auth pour les sessions ; Drizzle sur D1 ; Tailwind v4 avec un thème SOCIA sombre ; modèle local Ollama via l’API OpenAI-compatible. Gestionnaire de paquets : pnpm.
+TanStack Start (Vite, React 19) sur le runtime local workerd via Void ; Better Auth pour les sessions ; Drizzle sur D1 local ; Tailwind v4 avec un thème SOCIA sombre ; modèle local Ollama via l’API OpenAI-compatible. Gestionnaire de paquets : pnpm.
 
-## Deploy
+## Local only
 
-Owner: Void
-Command: `pnpm void deploy --platform cloudflare`
-Account: Aladecharaf23@gmail.com's Account (Cloudflare)
-Production: https://socia.devalade.me et https://socia.zecreator.com
-Health: https://socia.zecreator.com/health
-
-Ne pas ajouter de `wrangler.jsonc`, ne pas utiliser `cf deploy` pour l’application. Void possède le Worker et les migrations D1. `cf` peut servir aux ressources du compte, jamais au déploiement de l’app. Un Worker Cloudflare ne peut pas joindre `127.0.0.1:11434`; l’IA locale fonctionne en exécution locale, ou avec une URL Ollama accessible depuis le Worker.
+This project is not deployed. Do not run `void deploy`, `cf deploy` or any Cloudflare publication. Run `pnpm dev` with the local D1 database and Ollama. The Cloudflare Worker, custom domains and production D1 database were deleted; a JSON backup of the old D1 data exists outside the repository. The `deploy` script and `void.lock.json` were removed.
 
 ## Commands
 
@@ -22,10 +16,9 @@ Ne pas ajouter de `wrangler.jsonc`, ne pas utiliser `cf deploy` pour l’applica
 - `pnpm typecheck` : `void prepare` puis `tsc --noEmit`.
 - `pnpm lint` : oxlint + règles `@shadcn/lint` en erreur.
 - `pnpm test` : Vitest, 27 tests de domaine.
-- `pnpm build` : build de production.
+- `pnpm build` : build local.
 - `pnpm smoke` : parcours Playwright contre `BASE_URL` avec `SMOKE_EMAIL` et `SMOKE_PASSWORD`.
 - `pnpm void db generate` / `pnpm void db migrate` : migrations D1.
-- `pnpm deploy` : alias de `void deploy --platform cloudflare`.
 
 ## Surfaces backend utilisées
 
@@ -39,7 +32,7 @@ Ne pas ajouter de `wrangler.jsonc`, ne pas utiliser `cf deploy` pour l’applica
 | Email, queues, cron, WebSockets | Non utilisées | Hors périmètre. |
 | R2 / stockage fichier | Non utilisé | Les fichiers JSON sont lus côté navigateur, puis validés et stockés en D1 dans la limite de taille. |
 
-L’IA locale utilise Ollama : `ollama serve`, `ollama pull <modèle>`, puis `pnpm dev`. Renseignez `OLLAMA_MODEL` si plusieurs modèles sont installés. Le Worker Cloudflare ne peut pas joindre `127.0.0.1:11434`; la version déployée a besoin d’une URL Ollama accessible, ou doit tourner localement.
+L’IA locale utilise Ollama : `ollama serve`, `ollama pull <modèle>`, puis `pnpm dev`. Renseignez `OLLAMA_MODEL` si plusieurs modèles sont installés. `/health` expose `aiLocal` pour vérifier la détection.
 
 ## Architecture
 

@@ -129,5 +129,5 @@ Les données non fiables sont délimitées par un tag dont le nom contient un no
 8. L’authentification, les rôles, la validation, le chiffrement des clés et l’audit sont en place.
 9. Les JSON importés sont traités comme non fiables et aucune commande n’est exécutée.
 10. Le code est typé, testé, documenté, sans secret dans le dépôt.
-11. Le projet se déploie sur Cloudflare avec Void.
+11. Le projet tourne localement avec `pnpm dev`, sans déploiement Cloudflare.
 12. Les documents de spécification, d’architecture, de sécurité et d’exploitation sont présents.

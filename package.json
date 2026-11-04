@@ -18,7 +18,6 @@
     "db:migrate": "void db migrate",
     "db:seed": "void db seed",
     "db:studio": "void db studio",
-    "deploy": "void deploy --platform cloudflare",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "smoke": "node scripts/smoke.mjs",
     "quality": "bash scripts/quality.sh"

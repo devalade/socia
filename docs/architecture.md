@@ -17,16 +17,16 @@ Services serveur
         └── Ollama local (127.0.0.1:11434 ou OLLAMA_BASE_URL)
 ```
 
-Le déploiement est possédé par Void. `void deploy --platform cloudflare` construit le Worker, applique les migrations D1 et publie l’application. Le Worker ne peut pas joindre un Ollama sur `127.0.0.1`; l’IA locale tourne avec l’application en local, ou avec une URL Ollama accessible. Aucun `wrangler.jsonc` n’est présent.
+L’application tourne localement avec `pnpm dev`. D1 est local via Void. Aucun Worker, domaine personnalisé ou déploiement Cloudflare ne subsiste. Aucun `wrangler.jsonc` n’est présent.
 
 ## Stack
 
 | Couche | Choix |
 | --- | --- |
 | Framework | TanStack Start 1.169, React 19, Vite 8 |
-| Runtime | Cloudflare Workers |
-| SDK et déploiement | Void 1.2.1 |
-| Base | Cloudflare D1, Drizzle ORM |
+| Runtime local | workerd via Void |
+| SDK local | Void 1.2.1 |
+| Base locale | D1 local via Void, Drizzle ORM |
 | Auth | Better Auth 1.7, email + mot de passe, sessions D1 |
 | IA | Ollama local : `/api/tags` et `/v1/chat/completions` |
 | UI | Tailwind v4, shadcn/ui, composants premium mesurés |
@@ -93,7 +93,7 @@ Avantages : structure stable, absence d’hallucination dans le rapport, champs 
 - L’appel passe par l’API OpenAI-compatible de Ollama, `POST /v1/chat/completions`.
 - Aucun catalogue ni sélecteur de modèle n’est exposé.
 - Les requêtes KQL sont demandées en une passe (8 à 24 axes), puis filtrées et dédupliquées.
-- Un Worker Cloudflare ne peut pas joindre `127.0.0.1`. La version déployée a besoin d’une URL Ollama accessible, ou doit être exécutée localement.
+- Ollama écoute sur la machine (`OLLAMA_BASE_URL`, par défaut `http://127.0.0.1:11434`).
 
 ## Données et limites
 

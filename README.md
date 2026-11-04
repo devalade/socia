@@ -1,8 +1,6 @@
 # SOCIA
 
-**Live: https://socia.zecreator.com** et **https://socia.devalade.me**
-
-> L’interface est en ligne. Le modèle IA est local : lancez Ollama sur la machine, ou renseignez `OLLAMA_BASE_URL` avec une URL joignable depuis le Worker pour la version déployée.
+**Local only.** SOCIA tourne sur votre machine. Aucun déploiement Cloudflare.
 
 **L’analyste garde la main. L’IA apporte la clarté.**
 
@@ -45,9 +43,9 @@ SOCIA ne se connecte ni à Kibana ni à Elasticsearch et n’exécute aucune req
 | Couche | Choix |
 | --- | --- |
 | Framework | TanStack Start, React 19, Vite 8 |
-| Runtime | Cloudflare Workers |
-| SDK et déploiement | Void |
-| Base | Cloudflare D1 + Drizzle |
+| Runtime local | workerd via Void |
+| SDK local | Void |
+| Base locale | D1 local via Void + Drizzle |
 | Auth | Better Auth |
 | IA | Ollama local, modèle unique détecté (`OLLAMA_BASE_URL`, `OLLAMA_MODEL`) |
 | UI | Tailwind v4, primitives shadcn et compositions premium mesurées |
@@ -56,6 +54,7 @@ SOCIA ne se connecte ni à Kibana ni à Elasticsearch et n’exécute aucune req
 ## Démarrage local
 
 ```bash
+# create .env first (see docs/build.md)
 pnpm install
 pnpm void db migrate
 ollama serve
@@ -65,7 +64,7 @@ pnpm dev
 
 Ouvrir `http://localhost:3000`. Le premier compte créé devient administrateur.
 
-L’IA utilise Ollama sur la machine. Démarrez-le avec `ollama serve`, installez un modèle avec `ollama pull <modèle>`, puis renseignez `OLLAMA_MODEL` si plusieurs modèles sont présents. Le Worker Cloudflare ne peut pas joindre `127.0.0.1:11434`; la version déployée a besoin d’une URL Ollama accessible, ou doit être exécutée localement.
+L’IA utilise Ollama sur la machine. Démarrez-le avec `ollama serve`, installez un modèle avec `ollama pull <modèle>`, puis renseignez `OLLAMA_MODEL` si plusieurs modèles sont présents. `/health` expose `aiLocal` pour vérifier la détection.
 
 ## Vérifications
 
@@ -78,19 +77,9 @@ pnpm build
 
 Le parcours complet a été vérifié avec un modèle Ollama local : analyse initiale, requêtes KQL en une passe, import de résultat, réanalyse, clôture et rapport versionné.
 
-## Déploiement
+## Local only
 
-Le propriétaire du déploiement est Void.
-
-```bash
-pnpm void secret put BETTER_AUTH_SECRET
-pnpm void secret put BETTER_AUTH_URL=https://votre-domaine
-pnpm void deploy --platform cloudflare
-```
-
-Détails, rollback et dépannage : [docs/build.md](docs/build.md).
-
-Le Worker ne peut pas joindre un Ollama qui écoute sur `127.0.0.1`. Pour la version déployée, exposez Ollama via une URL accessible et renseignez `OLLAMA_BASE_URL`.
+Aucun déploiement Cloudflare. Le Worker, les domaines personnalisés et la base D1 de production ont été supprimés. L’application tourne avec `pnpm dev`, une base D1 locale et Ollama. Une sauvegarde JSON de l’ancienne base a été faite avant suppression.
 
 ## Documentation
 
@@ -99,7 +88,7 @@ Le Worker ne peut pas joindre un Ollama qui écoute sur `127.0.0.1`. Pour la ver
 - [Sécurité](docs/security.md)
 - [Scénarios et couverture](docs/scenarios.md)
 - [Pain ledger](docs/pain-ledger.md)
-- [Build et déploiement](docs/build.md)
+- [Build et exécution locale](docs/build.md)
 - [Notes agent](AGENTS.md)
 
 ## Structure

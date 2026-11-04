@@ -17,3 +17,5 @@ todos.json
 *.tsbuildinfo
 
 .smoke-state.json
+
+void.lock.json

@@ -1,120 +1,95 @@
-# Build, run and deploy
+# Build and run locally
 
-## Prérequis
+SOCIA is local only. There is no Cloudflare deployment.
 
-- Node.js 22.18 ou plus récent (le CLI `cf` en a besoin ; Void fonctionne avec Node 22+).
+## Requirements
+
+- Node.js 22.18 or newer.
 - pnpm 11.
-- Un compte Cloudflare pour le Worker et D1. Un Ollama local pour l’analyse.
-- `void` installé localement via le paquet du projet.
+- Ollama installed and running locally.
+- No Cloudflare account is needed.
 
-## Installation
+## Install
 
 ```bash
+# create .env first (Void supports one local env file)
 pnpm install
-cp .env.example .env
-# remplacer les valeurs de développement
 pnpm void db migrate
+ollama serve
+ollama pull <modèle>
 pnpm dev
 ```
 
-Ouvrir `http://localhost:3000`. Le premier compte créé devient administrateur.
-
-L’IA utilise Ollama local. Démarrez-le et vérifiez `/health` : le champ `aiLocal` doit indiquer `available: true`.
+`.env` holds the local values. Void accepts one local env file, `.env`; there is no `.env.example`:
 
 ```bash
-pnpm void cloudflare status
-pnpm void connect --platform cloudflare
-pnpm dev
+APP_ENV=local
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_SECRET=<openssl rand -base64 48>
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=
 ```
 
-Sans cette connexion, `/health` reste vert mais les appels IA échouent et l’interface affiche « IA à configurer ».
+Open `http://localhost:3000`. The first account created becomes administrator.
+
+The model is detected from `OLLAMA_BASE_URL` and `OLLAMA_MODEL`. `/health` exposes `aiLocal`; when `available` is true, the local model is reachable. If `OLLAMA_MODEL` is empty, the first model installed in Ollama is used.
 
 ## Variables
 
-| Clé | Rôle | Production |
+| Key | Role | Local |
 | --- | --- | --- |
-| `APP_ENV` | `local`, `preview` ou `production` | `production` |
-| `BETTER_AUTH_URL` | URL publique de l’application | URL HTTPS |
-| `BETTER_AUTH_SECRET` | Secret de session Better Auth | `void secret put` |
-| `AI_REQUEST_TIMEOUT_MS` | Timeout des appels IA | 90000 |
-| `AI_KEY_ENCRYPTION_KEY` | Clé de chiffrement des clés fournisseurs | `void secret put` |
+| `APP_ENV` | Environment | `local` |
+| `BETTER_AUTH_URL` | Application origin | `http://localhost:3000` |
+| `BETTER_AUTH_SECRET` | Better Auth session secret | Required |
+| `AI_REQUEST_TIMEOUT_MS` | Analysis timeout | `90000` |
+| `OLLAMA_BASE_URL` | Ollama API | `http://127.0.0.1:11434` |
+| `OLLAMA_MODEL` | Model name | Empty: first installed model |
+| `SOCIA_REPORT_FOOTER` | Report footer | Optional |
 
-Générer les secrets :
+Generate the auth secret:
 
 ```bash
-openssl rand -base64 48   # BETTER_AUTH_SECRET
-openssl rand -base64 48   # AI_KEY_ENCRYPTION_KEY
+openssl rand -base64 48
 ```
 
-Ne jamais committer `.env`. Ne jamais mettre un secret derrière un préfixe `VITE_`.
+Never commit `.env`. Never put a secret behind a `VITE_` prefix.
 
-## Base de données
+## Database
+
+The database is local D1, stored under `.void/`.
 
 ```bash
-pnpm void db generate   # après modification de db/schema.ts
-pnpm void db migrate    # applique les migrations locales
+pnpm void db generate   # after changing db/schema.ts
+pnpm void db migrate
 pnpm void db status
 pnpm void db studio
+pnpm void db export --output socia-local-backup.sql
 ```
 
-Lire chaque migration générée avant de la committer. Le déploiement applique les migrations.
+Read every generated migration before committing it. `pnpm void db reset` deletes the local database and reapplies migrations; use it only when you intend to lose local data.
 
-## Vérifications
+## Checks
 
 ```bash
 pnpm typecheck
 pnpm lint
 pnpm test
 pnpm build
-pnpm smoke               # contre BASE_URL, avec SMOKE_EMAIL et SMOKE_PASSWORD
+pnpm smoke               # against BASE_URL, with SMOKE_EMAIL and SMOKE_PASSWORD
 ```
 
-Le smoke nécessite un compte existant. Il vérifie `/health`, la redirection anonyme, la connexion, le tableau de bord, l’historique et l’administration. Il échoue si une erreur console ou page apparaît.
+The smoke test needs an existing account. It checks `/health`, the anonymous redirect, sign-in, the dashboard, the history and administration. It fails on a console error or a page error.
 
-## Déploiement
+## Local only
 
-Le propriétaire du déploiement est **Void**, pas `cf` ni Wrangler.
+Do not run `void deploy`, `cf deploy` or any Cloudflare publication. The Worker, custom domains and production D1 database were deleted. The `deploy` script and `void.lock.json` are removed from the project.
 
-```bash
-pnpm void connect --platform cloudflare   # une fois
-pnpm void secret put BETTER_AUTH_SECRET
-pnpm void secret put BETTER_AUTH_URL=https://votre-domaine
-pnpm void secret put AI_KEY_ENCRYPTION_KEY
-pnpm void deploy --platform cloudflare
-```
+## Troubleshooting
 
-Après le déploiement :
-
-```bash
-curl https://votre-domaine/health
-pnpm void project status
-pnpm void project logs
-```
-
-Le premier déploiement crée la base D1. `void.lock.json` enregistre les ressources et doit être commité.
-
-### Rollback
-
-Lister les déploiements puis revenir à la version précédente :
-
-```bash
-pnpm void project status
-pnpm void project rollback
-```
-
-Le rollback du Worker ne défait pas une migration D1. Les migrations sont forward-only ; une correction de schéma passe par une nouvelle migration.
-
-## Domaine personnalisé
-
-Ajouter le domaine dans la configuration Cloudflare ou via `void domain`. Vérifier ensuite `BETTER_AUTH_URL` et redéployer pour que les cookies et les redirections utilisent la bonne origine.
-
-## Dépannage
-
-| Symptôme | Cause | Action |
+| Symptom | Cause | Action |
 | --- | --- | --- |
-| `AI requires authentication` | Void n’est pas connecté au compte Cloudflare | `pnpm void connect --platform cloudflare`, redémarrer |
-| `/health` renvoie 503 | D1 indisponible ou migration absente | `pnpm void db migrate`, vérifier les logs |
-| Le modèle local n’est pas détecté | Ollama n’est pas joignable | Démarrer `ollama serve`, vérifier `OLLAMA_BASE_URL` et `/health` |
-| Session absente après déploiement | `BETTER_AUTH_URL` incorrect | Corriger le secret, redéployer |
-| Hydratation incohérente | Ancien cache de dev | Redémarrer Vite, vider le cache navigateur |
-| Erreur d’insertion D1 | Migration non appliquée | `pnpm void db generate && pnpm void db migrate` |
+| `/health` returns 503 | Local D1 unavailable or migration missing | `pnpm void db migrate`, then restart `pnpm dev` |
+| The local model is not detected | Ollama is not running or the model is missing | `ollama serve`, `ollama pull <modèle>`, check `/health.aiLocal` |
+| Session missing after a restart | `BETTER_AUTH_URL` or secret changed | Restore `.env`, restart `pnpm dev` |
+| Hydration mismatch | Stale Vite cache | Restart Vite, clear the browser cache |
+| D1 insert error | Migration not applied | `pnpm void db generate && pnpm void db migrate` |
