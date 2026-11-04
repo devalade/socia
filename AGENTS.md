@@ -18,6 +18,7 @@ This project is not deployed. Do not run `void deploy`, `cf deploy` or any Cloud
 - `pnpm test` : Vitest, 27 tests de domaine.
 - `pnpm build` : build local.
 - `pnpm smoke` : parcours Playwright contre `BASE_URL` avec `SMOKE_EMAIL` et `SMOKE_PASSWORD`.
+- `pnpm ollama:setup` : scanne Ollama, le démarre si possible, choisit un modèle installé, met à jour `.env` et teste le modèle.
 - `pnpm void db generate` / `pnpm void db migrate` : migrations D1.
 
 ## Surfaces backend utilisées

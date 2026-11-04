@@ -12,15 +12,30 @@ SOCIA is local only. There is no Cloudflare deployment.
 ## Install
 
 ```bash
-# create .env first (Void supports one local env file)
 pnpm install
+pnpm ollama:setup
 pnpm void db migrate
-ollama serve
-ollama pull <modèle>
 pnpm dev
 ```
 
-`.env` holds the local values. Void accepts one local env file, `.env`; there is no `.env.example`:
+`pnpm ollama:setup` handles the local setup:
+
+- It finds the Ollama binary in `PATH`, Homebrew, or `/Applications/Ollama.app/Contents/Resources/ollama`.
+- It starts `ollama serve` when the API is not already running.
+- It lists installed models, keeps `OLLAMA_MODEL` when valid, or selects the first useful installed model.
+- It writes `OLLAMA_BASE_URL` and `OLLAMA_MODEL` to `.env`, creating `.env` and `BETTER_AUTH_SECRET` when missing.
+- It sends a test prompt and prints the model response.
+
+Options:
+
+```bash
+pnpm ollama:setup --model deepseek-r1:8b
+pnpm ollama:setup --base-url http://127.0.0.1:11434
+pnpm ollama:setup --check
+pnpm ollama:setup --no-start
+```
+
+It does not download models. If none are installed, it prints the `ollama pull <modèle>` command. `.env` holds the local values; Void accepts one local env file, `.env`, and there is no `.env.example`:
 
 ```bash
 APP_ENV=local

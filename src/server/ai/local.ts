@@ -48,9 +48,18 @@ export async function detectLocalModel(force = false): Promise<LocalModelView> {
     const installed = Array.isArray(payload.models)
       ? payload.models.map((model) => (typeof model?.name === 'string' ? model.name : '')).filter(Boolean)
       : []
-    const modelId = (env.OLLAMA_MODEL || '').trim() || installed[0] || ''
+    const configured = (env.OLLAMA_MODEL || '').trim()
+    const matched = configured
+      ? installed.find((name) => name === configured || name.split(':')[0] === configured)
+      : undefined
+    const modelId = matched ?? installed[0] ?? ''
     if (!modelId) {
-      value = { ...fallback, error: 'Ollama répond, mais aucun modèle n’est installé. Lancez `ollama pull <modèle>`.' }
+      value = {
+        ...fallback,
+        error: installed.length
+          ? `Le modèle ${configured || 'configuré'} n’est pas installé. Lancez \`ollama pull <modèle>\`.`
+          : 'Ollama répond, mais aucun modèle n’est installé. Lancez `ollama pull <modèle>`.',
+      }
     } else {
       value = { ...fallback, modelId, label: modelId, available: true, error: null }
     }

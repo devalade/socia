@@ -54,17 +54,15 @@ SOCIA ne se connecte ni à Kibana ni à Elasticsearch et n’exécute aucune req
 ## Démarrage local
 
 ```bash
-# create .env first (see docs/build.md)
 pnpm install
+pnpm ollama:setup
 pnpm void db migrate
-ollama serve
-ollama pull <modèle>
 pnpm dev
 ```
 
 Ouvrir `http://localhost:3000`. Le premier compte créé devient administrateur.
 
-L’IA utilise Ollama sur la machine. Démarrez-le avec `ollama serve`, installez un modèle avec `ollama pull <modèle>`, puis renseignez `OLLAMA_MODEL` si plusieurs modèles sont présents. `/health` expose `aiLocal` pour vérifier la détection.
+`pnpm ollama:setup` scanne la machine, démarre Ollama si le binaire est présent, choisit un modèle installé, écrit `OLLAMA_BASE_URL` et `OLLAMA_MODEL` dans `.env`, puis envoie un prompt de test. Il ne télécharge pas de modèle : s’il n’en trouve aucun, il affiche la commande `ollama pull`. Utilisez `--model <nom>` pour imposer un modèle. `/health` expose `aiLocal` pour vérifier la détection.
 
 ## Vérifications
 

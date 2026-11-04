@@ -20,7 +20,8 @@
     "db:studio": "void db studio",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "smoke": "node scripts/smoke.mjs",
-    "quality": "bash scripts/quality.sh"
+    "quality": "bash scripts/quality.sh",
+    "ollama:setup": "node scripts/ollama-setup.mjs"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
