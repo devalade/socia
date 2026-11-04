@@ -15,7 +15,7 @@ const SEVERITY_TONE: Record<Severity, StatusTone> = {
 const STATUS_TONE: Record<InvestigationStatus, StatusTone> = {
   draft: 'neutral',
   analyzing: 'info',
-  in_progress: 'warning',
+  in_progress: 'info',
   concluded: 'success',
   archived: 'neutral',
 }

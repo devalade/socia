@@ -65,8 +65,9 @@ L’IA en développement est distante : `pnpm void connect --platform cloudflare
 
 ## Design system
 
-- Direction: **Ink & Signal**, a dark editorial dossier. Display: Instrument Serif. UI: Geist. Evidence: Geist Mono. One accent: vermilion. Warm ink surfaces, hairline rules, numbered exhibits. No gradients or glows.
-- The app shell is a masthead with numbered navigation, not a sidebar. The dashboard is a briefing sheet. The investigation is a case file with a margin column.
+- Direction: **Signal Room**. The premium-react measurements applied to the SOCIA security console. Geist for every UI and display surface. Geist Mono only for KQL, ids, timestamps and raw JSON. Paper-white primary actions in dark, ink primary in light. Vermilion is a signal colour: focus, active navigation, critical data, charts and the brand mark. Warm ink surfaces, one hairline ring, no glows, no serif, no numbered masthead.
+- Shell: 256px sidebar, 56px header, 1200px content max. The dashboard is a measured KPI, trend and table surface. The investigation is a tabbed case workspace with a context rail. Authentication is a centred 400px column.
+- Controls: 36px product, 40px auth and marketing, 44px primary on phones. Labels 13/500, body 14, meta 12. No 9px uppercase mono labels. Control radii 8px, surfaces 12 to 16px.
 - Tokens sémantiques uniquement dans le code applicatif. Pas de hex, `rgb()`, `p-[13px]`, couleur Tailwind brute.
 - `pnpm lint` doit rester à 0 erreur. Les règles `@shadcn/lint` sont en `error`.
 - Hiérarchie : `ui/` primitives, `premium/` compositions mesurées, `patterns/` compositions produit.

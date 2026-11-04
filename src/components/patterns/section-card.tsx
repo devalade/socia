@@ -20,14 +20,14 @@ export function SectionCard({
   flush?: boolean
 }) {
   return (
-    <Card className={cn('gap-0 overflow-hidden rounded-sm border border-border bg-transparent py-0 shadow-none', className)}>
+    <Card className={cn('gap-0 overflow-hidden rounded-xl border-border bg-card py-0 shadow-card', className)}>
       {(title || description || action) && (
-        <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div className="min-w-0">
-            {title && <Truncate className="font-display text-xl leading-none tracking-app">{title}</Truncate>}
-            {description && <p className="mt-1 font-mono text-tiny leading-4 tracking-caps text-muted-foreground uppercase">{description}</p>}
+            {title && <Truncate className="text-base leading-6 font-semibold tracking-app">{title}</Truncate>}
+            {description && <p className="mt-0.5 text-small leading-5 text-muted-foreground">{description}</p>}
           </div>
-          {action && <div className="shrink-0">{action}</div>}
+          {action && <div className="shrink-0 max-sm:w-full">{action}</div>}
         </div>
       )}
       <div className={cn(flush ? '' : 'p-5', contentClassName)}>{children}</div>

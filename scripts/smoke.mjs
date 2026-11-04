@@ -56,7 +56,7 @@ try {
 
   step('history')
   await page.goto(`${base}/app/investigations`, { waitUntil: 'networkidle' })
-  await page.getByText('Toutes les investigations').first().waitFor({ timeout: 20_000 })
+  await page.getByRole('heading', { name: 'Dossiers' }).waitFor({ timeout: 20_000 })
   await page.screenshot({ path: path.join(shots, 'history.png'), fullPage: true })
 
   step('administration (admin only)')

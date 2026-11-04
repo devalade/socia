@@ -65,8 +65,8 @@ export function JsonViewer({
     <div className={cn('overflow-hidden rounded-lg border border-border bg-surface-1', className)}>
       <div className="flex h-10 items-center gap-2 border-b border-border/80 px-3">
         <Braces aria-hidden className="size-3.5 text-muted-foreground" />
-        <span className="text-meta font-medium tracking-caps text-muted-foreground uppercase">{label}</span>
-        <span className="text-meta text-muted-foreground/70 num">{bytes.toLocaleString('fr-FR')} octets</span>
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <span className="text-xs text-muted-foreground/70 num">{bytes.toLocaleString('fr-FR')} octets</span>
         <div className="ms-auto">
           <CopyButton value={pretty} label="Copier" size="xs" />
         </div>

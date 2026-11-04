@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { FileSearch, Filter, Plus, Search, X } from 'lucide-react'
+import { FileSearch, Plus, Search, X } from 'lucide-react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PageHeader } from '@/components/patterns/page-header'
 import { SectionCard } from '@/components/patterns/section-card'
 import { EmptyState } from '@/components/patterns/empty-state'
 import { PageSkeleton } from '@/components/patterns/route-states'
 import { RelativeTime } from '@/components/patterns/relative-time'
-import { InvestigationStatusBadge, SeverityBadge, VerdictBadge, CountBadge } from '@/components/patterns/badges'
+import { InvestigationStatusBadge, SeverityBadge, VerdictBadge } from '@/components/patterns/badges'
+import { StatusBadge } from '@/components/premium/status-badge'
 import { Truncate } from '@/components/premium/truncate'
 import { SEVERITIES, SEVERITY_LABELS, VERDICTS, VERDICT_LABELS } from '@/lib/alert'
 import { STATUS_LABELS } from '@/lib/investigation-labels'
@@ -63,35 +65,24 @@ function InvestigationsPage() {
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-5">
       <PageHeader
-        eyebrow={
-          <>
-            <FileSearch aria-hidden className="size-3.5" />
-            Historique
-          </>
-        }
-        title="Toutes les investigations"
+        title="Dossiers"
         description="Retrouvez une alerte, reprenez une investigation interrompue, comparez les verdicts. Chaque dossier conserve son alerte originale, ses analyses et ses preuves importées."
         actions={
           <Button asChild size="sm">
             <Link to="/app/investigations/new">
-              <span className="inline-flex items-center gap-2">
-                <Plus aria-hidden />
-                Nouvelle investigation
-              </span>
+              <Plus aria-hidden />
+              Nouveau dossier
             </Link>
           </Button>
         }
         meta={
           <>
-            <span className="inline-flex items-center gap-2">
-              <CountBadge>{data.total}</CountBadge>
-              investigation{data.total > 1 ? 's' : ''} au total
-            </span>
+            <span>{data.total} dossier{data.total > 1 ? 's' : ''}</span>
             {activeFilters > 0 && (
               <button type="button" onClick={reset} className="inline-flex items-center gap-1 text-brand hover:underline">
-                <X aria-hidden className="size-3" />
+                <X aria-hidden className="size-3.5" />
                 Réinitialiser les filtres
               </button>
             )}
@@ -100,7 +91,7 @@ function InvestigationsPage() {
       />
 
       <SectionCard flush>
-        <div className="flex flex-col gap-3 border-b border-border/70 p-4 lg:flex-row lg:items-center">
+        <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center">
           <form
             onSubmit={(event) => {
               event.preventDefault()
@@ -108,13 +99,13 @@ function InvestigationsPage() {
             }}
             className="relative min-w-0 flex-1"
           >
-            <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={term}
               onChange={(event) => setTerm(event.target.value)}
               placeholder="Rechercher par titre, règle, hôte ou utilisateur"
               aria-label="Rechercher une investigation"
-              className="h-11 pl-9 sm:h-9"
+              className="h-11 ps-9 sm:h-9"
             />
             {term && (
               <button
@@ -123,7 +114,7 @@ function InvestigationsPage() {
                   setTerm('')
                   update({ search: undefined })
                 }}
-                className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute top-1/2 right-2 grid size-6 -translate-y-1/2 place-items-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
                 aria-label="Effacer la recherche"
               >
                 <X aria-hidden className="size-3.5" />
@@ -131,9 +122,8 @@ function InvestigationsPage() {
             )}
           </form>
           <div className="flex flex-wrap items-center gap-2">
-            <Filter aria-hidden className="size-3.5 text-muted-foreground" />
             <Select value={filters.status ?? 'all'} onValueChange={(value) => update({ status: value === 'all' ? undefined : value })}>
-              <SelectTrigger className="h-11 w-36 bg-surface-1 text-xs sm:h-9" aria-label="Filtrer par statut">
+              <SelectTrigger className="h-11 w-full sm:h-9 sm:w-40" aria-label="Filtrer par statut">
                 <SelectValue placeholder="Statut" />
               </SelectTrigger>
               <SelectContent>
@@ -144,7 +134,7 @@ function InvestigationsPage() {
               </SelectContent>
             </Select>
             <Select value={filters.severity ?? 'all'} onValueChange={(value) => update({ severity: value === 'all' ? undefined : value })}>
-              <SelectTrigger className="h-11 w-36 bg-surface-1 text-xs sm:h-9" aria-label="Filtrer par sévérité">
+              <SelectTrigger className="h-11 w-full sm:h-9 sm:w-40" aria-label="Filtrer par sévérité">
                 <SelectValue placeholder="Sévérité" />
               </SelectTrigger>
               <SelectContent>
@@ -155,7 +145,7 @@ function InvestigationsPage() {
               </SelectContent>
             </Select>
             <Select value={filters.verdict ?? 'all'} onValueChange={(value) => update({ verdict: value === 'all' ? undefined : value })}>
-              <SelectTrigger className="h-11 w-40 bg-surface-1 text-xs sm:h-9" aria-label="Filtrer par verdict">
+              <SelectTrigger className="h-11 w-full sm:h-9 sm:w-44" aria-label="Filtrer par verdict">
                 <SelectValue placeholder="Verdict" />
               </SelectTrigger>
               <SelectContent>
@@ -171,7 +161,7 @@ function InvestigationsPage() {
         {data.rows.length === 0 ? (
           <EmptyState
             icon={<FileSearch aria-hidden />}
-            title={activeFilters ? 'Aucun résultat avec ces filtres' : 'Aucune investigation'}
+            title={activeFilters ? 'Aucun résultat avec ces filtres' : 'Aucun dossier'}
             description={
               activeFilters
                 ? 'Essayez une recherche plus large ou réinitialisez les filtres.'
@@ -187,73 +177,73 @@ function InvestigationsPage() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="hidden w-full min-w-table-xx border-collapse text-left text-xs md:table">
-                <thead>
-                  <tr className="border-b border-border/70 text-micro tracking-pill text-muted-foreground uppercase">
-                    <th className="px-5 py-2 font-medium">Investigation</th>
-                    <th className="px-3 py-2 font-medium">Sévérité</th>
-                    <th className="px-3 py-2 font-medium">Statut</th>
-                    <th className="px-3 py-2 font-medium">Verdict</th>
-                    <th className="px-3 py-2 font-medium">Requêtes</th>
-                    <th className="px-3 py-2 font-medium">Analyste</th>
-                    <th className="px-5 py-2 text-right font-medium">Dernière activité</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
+            <div className="hidden md:block">
+              <Table className="min-w-table-xx">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="ps-5">Dossier</TableHead>
+                    <TableHead>Sévérité</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Verdict</TableHead>
+                    <TableHead>Requêtes</TableHead>
+                    <TableHead>Analyste</TableHead>
+                    <TableHead className="pe-5 text-right">Activité</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.rows.map((row) => (
-                    <tr key={row.id} className="group transition-colors hover:bg-accent/30">
-                      <td className="max-w-form px-5 py-4">
+                    <TableRow key={row.id}>
+                      <TableCell className="max-w-form ps-5">
                         <Link to="/app/investigations/$investigationId" params={{ investigationId: row.id }} className="block min-w-0">
-                          <Truncate className="text-body font-medium group-hover:text-brand">{row.title}</Truncate>
-                          <Truncate className="mt-0.5 text-meta text-muted-foreground">{row.ruleName ?? 'Règle sans nom'}</Truncate>
+                          <Truncate className="font-medium text-foreground hover:text-brand">{row.title}</Truncate>
+                          <Truncate className="mt-0.5 text-xs text-muted-foreground">{row.ruleName ?? 'Règle sans nom'}</Truncate>
                         </Link>
-                      </td>
-                      <td className="px-3 py-4"><SeverityBadge severity={row.severity} /></td>
-                      <td className="px-3 py-4"><InvestigationStatusBadge status={row.status} /></td>
-                      <td className="px-3 py-4">{row.verdict ? <VerdictBadge verdict={row.verdict} /> : <span className="text-muted-foreground">n/d</span>}</td>
-                      <td className="px-3 py-4">
+                      </TableCell>
+                      <TableCell><SeverityBadge severity={row.severity} /></TableCell>
+                      <TableCell><InvestigationStatusBadge status={row.status} /></TableCell>
+                      <TableCell>{row.verdict ? <VerdictBadge verdict={row.verdict} /> : <span className="text-xs text-muted-foreground">n/d</span>}</TableCell>
+                      <TableCell>
                         <span className="inline-flex items-center gap-2">
-                          <span className="text-subtle num">{row.queryCount}</span>
-                          {row.openQueryCount > 0 && <span className="rounded-full bg-warning/10 px-1.5 py-0.5 text-micro text-warning">{row.openQueryCount} en attente</span>}
+                          <span className="text-small text-subtle num">{row.queryCount}</span>
+                          {row.openQueryCount > 0 && <StatusBadge tone="warning">{row.openQueryCount} en attente</StatusBadge>}
                         </span>
-                      </td>
-                      <td className="px-3 py-4 text-muted-foreground">{row.ownerName}</td>
-                      <td className="px-5 py-4 text-right text-muted-foreground"><RelativeTime value={row.lastActivityAt} /></td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className="text-small text-muted-foreground">{row.ownerName}</TableCell>
+                      <TableCell className="pe-5 text-right text-xs text-muted-foreground"><RelativeTime value={row.lastActivityAt} /></TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-
-              <div className="divide-y divide-border/60 md:hidden">
-                {data.rows.map((row) => (
-                  <Link key={row.id} to="/app/investigations/$investigationId" params={{ investigationId: row.id }} className="block px-5 py-4 transition-colors hover:bg-accent/30">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <Truncate className="text-body font-medium">{row.title}</Truncate>
-                        <Truncate className="mt-1 text-meta text-muted-foreground">{row.ruleName ?? 'Règle sans nom'}</Truncate>
-                      </div>
-                      <SeverityBadge severity={row.severity} />
-                    </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <InvestigationStatusBadge status={row.status} />
-                      {row.verdict && <VerdictBadge verdict={row.verdict} />}
-                      {row.openQueryCount > 0 && <span className="rounded-full bg-warning/10 px-2 py-0.5 text-micro text-warning">{row.openQueryCount} requête{row.openQueryCount > 1 ? 's' : ''} en attente</span>}
-                    </div>
-                    <div className="mt-2 text-meta text-muted-foreground">{row.ownerName} · <RelativeTime value={row.lastActivityAt} /></div>
-                  </Link>
-                ))}
-              </div>
+                </TableBody>
+              </Table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 px-5 py-3">
-              <p className="text-meta text-muted-foreground">
+            <div className="divide-y divide-border md:hidden">
+              {data.rows.map((row) => (
+                <Link key={row.id} to="/app/investigations/$investigationId" params={{ investigationId: row.id }} className="block px-4 py-4 transition-colors hover:bg-accent/40">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Truncate lines={2} className="font-medium text-foreground">{row.title}</Truncate>
+                      <Truncate className="mt-1 text-xs text-muted-foreground">{row.ruleName ?? 'Règle sans nom'}</Truncate>
+                    </div>
+                    <SeverityBadge severity={row.severity} />
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <InvestigationStatusBadge status={row.status} />
+                    {row.verdict && <VerdictBadge verdict={row.verdict} />}
+                    {row.openQueryCount > 0 && <StatusBadge tone="warning">{row.openQueryCount} en attente</StatusBadge>}
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">{row.ownerName} · <RelativeTime value={row.lastActivityAt} /></div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+              <p className="text-xs text-muted-foreground">
                 {data.total === 0 ? '0' : `${(data.page - 1) * data.pageSize + 1}–${Math.min(data.page * data.pageSize, data.total)}`} sur {data.total}
               </p>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="xs" disabled={data.page <= 1} onClick={() => update({ page: data.page - 1 })}>Précédent</Button>
-                <span className="text-meta text-muted-foreground num">Page {data.page} / {pageCount}</span>
-                <Button variant="outline" size="xs" disabled={data.page >= pageCount} onClick={() => update({ page: data.page + 1 })}>Suivant</Button>
+                <Button variant="outline" size="sm" disabled={data.page <= 1} onClick={() => update({ page: data.page - 1 })}>Précédent</Button>
+                <span className="text-xs text-muted-foreground num">Page {data.page} / {pageCount}</span>
+                <Button variant="outline" size="sm" disabled={data.page >= pageCount} onClick={() => update({ page: data.page + 1 })}>Suivant</Button>
               </div>
             </div>
           </>

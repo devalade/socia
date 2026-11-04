@@ -18,7 +18,7 @@ export function StatusBadge({ tone = 'neutral', className, children }: { tone?: 
       variant="secondary"
       className={cn(
         TONES[tone],
-        "h-5 gap-1.5 rounded-sm border border-[color-mix(in_oklab,var(--tone)_28%,transparent)] bg-transparent px-1.5 font-mono text-[9px] font-medium tracking-[0.08em] uppercase text-[color-mix(in_oklab,var(--tone)_82%,var(--foreground))] before:size-1 before:bg-(--tone) before:content-['']",
+        "h-[22px] gap-1.5 rounded-sm border border-transparent px-2 bg-[color-mix(in_oklab,var(--tone)_12%,transparent)] text-[color-mix(in_oklab,var(--tone)_86%,var(--foreground))] before:size-1.5 before:rounded-full before:bg-(--tone) before:content-['']",
         className,
       )}
     >

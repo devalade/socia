@@ -11,8 +11,9 @@ import { formatMetric, metricChange, metricContext, type Metric } from '@/compon
 export function KpiCard({ metric, spark = [], period, className }: { metric: Metric; spark?: (number | null)[]; period?: string; className?: string }) {
   const v = formatMetric(metric.kind, metric.value)
   const d = metricChange(metric)
+  const hasSpark = spark.some((value) => value != null)
   return (
-    <Card className={cn('grid grid-rows-[auto_auto_auto_1fr] gap-1.5 p-4 sm:p-5', className)}>
+    <Card className={cn('flex flex-col gap-1.5 p-4 sm:p-5', className)}>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1.5 text-label text-subtle">
         {/* the label keeps 96px; past that the change wraps under it instead of cutting the label */}
         <Truncate className="min-w-24 flex-1">{metric.label}</Truncate>
@@ -20,7 +21,7 @@ export function KpiCard({ metric, spark = [], period, className }: { metric: Met
       </div>
       <span className="text-2xl font-semibold tracking-[-0.02em] num sm:text-[28px] sm:leading-[1.1]" title={v.title}>{v.text}</span>
       <Truncate lines={2} className="text-label text-muted-foreground">{metricContext(metric, period)}</Truncate>
-      <Sparkline data={spark} className="mt-1 self-end" />
+      {hasSpark && <Sparkline data={spark} className="mt-auto" />}
     </Card>
   )
 }

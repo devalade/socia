@@ -26,7 +26,7 @@ export const Route = createFileRoute('/app/design')({
 
 function DesignGallery() {
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-8" data-audit-skip="X2 B1">
       <PageHeader
         eyebrow="Galerie dev"
         title="Design system SOCIA"

@@ -117,7 +117,10 @@ function NewInvestigationPage() {
   if (options.models.length === 0) {
     return (
       <div className="grid gap-6">
-        <PageHeader eyebrow="Nouvelle investigation" title="Importer une alerte" actions={<Button asChild variant="outline" size="sm"><Link to="/app/investigations"><ArrowLeft aria-hidden />Retour</Link></Button>} />
+        <PageHeader
+          title="Nouvelle investigation"
+          actions={<Button asChild variant="outline" size="sm"><Link to="/app/investigations"><ArrowLeft aria-hidden />Retour</Link></Button>}
+        />
         <EmptyState
           icon={<Sparkles aria-hidden />}
           title="Aucun modèle IA n’est disponible"
@@ -131,29 +134,27 @@ function NewInvestigationPage() {
   return (
     <div className="grid gap-6">
       <PageHeader
-        eyebrow={
-          <>
-            <Link to="/app/investigations" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
-              <ArrowLeft aria-hidden className="size-3.5" />
-              Investigations
-            </Link>
-            <span className="text-muted-foreground/40">/</span>
-            Nouvelle
-          </>
-        }
-        title="Importer une alerte, sans perdre le contexte."
-        description="Le document original est conservé tel quel. SOCIA lit les champs disponibles, signale les manques et prépare une analyse que vous restez libre d’enrichir."
+        title="Nouvelle investigation"
+        description="Importez une alerte Elastic Security ou Security Onion. Le document original reste intact, les champs absents sont signalés et l’analyse reste sous votre contrôle."
         actions={
-          <Button variant="outline" size="sm" onClick={() => void submit('draft')} loading={busy === 'draft'} disabled={busy !== null}>
-            Enregistrer le brouillon
-          </Button>
+          <>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/app/investigations">
+                <ArrowLeft aria-hidden />
+                Dossiers
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => void submit('draft')} loading={busy === 'draft'} disabled={busy !== null}>
+              Enregistrer le brouillon
+            </Button>
+          </>
         }
       />
 
       <div className="grid gap-5 layout-new">
         <div className="grid content-start gap-5">
           <SectionCard
-            title="1 · Alerte Elastic"
+            title="Alerte Elastic"
             description="Obligatoire. Objet JSON issu d’Elastic Security ou Security Onion."
             action={
               <div className="flex items-center gap-2">
@@ -234,8 +235,8 @@ function NewInvestigationPage() {
                   {parsed.summary.keyFields.length === 0 && <p className="text-xs text-muted-foreground">Aucun champ clé n’a été reconnu. L’analyse s’appuiera sur le document brut.</p>}
                   {parsed.summary.keyFields.map((field) => (
                     <div key={field.label} className="min-w-0 rounded-md border border-border/70 bg-surface-1/50 px-3 py-2">
-                      <div className="text-micro tracking-caps text-muted-foreground uppercase">{field.label}</div>
-                      <div className="mt-1 truncate font-mono text-meta text-subtle" title={field.value}>{field.value}</div>
+                      <div className="text-xs text-muted-foreground">{field.label}</div>
+                      <div className="mt-1 truncate font-mono text-xs text-subtle" title={field.value}>{field.value}</div>
                     </div>
                   ))}
                 </div>
@@ -249,11 +250,11 @@ function NewInvestigationPage() {
             </SectionCard>
           )}
 
-          <SectionCard title="2 · Contexte complémentaire" description="Facultatif. Ces éléments restent des données non fiables, séparées de la consigne système.">
+          <SectionCard title="Contexte complémentaire" description="Facultatif. Ces éléments restent des données non fiables, séparées de la consigne système.">
             <div className="grid gap-5">
               <div className="grid gap-2">
                 <Label htmlFor="title">Titre de l’investigation</Label>
-                <Input id="title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder={parsed?.ok ? (parsed.summary.ruleName ?? 'Titre déduit de l’alerte') : 'Titre déduit de l’alerte si vide'} maxLength={160} className="h-11 sm:h-9" />
+                <Input id="title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder={parsed?.ok ? (parsed.summary.ruleName ?? 'Titre déduit de l’alerte') : 'Titre déduit de l’alerte si vide'} maxLength={160} className="h-10" />
                 <p className="text-meta text-muted-foreground">Laissez vide pour reprendre le nom de la règle.</p>
               </div>
               <div className="grid gap-2">
@@ -274,10 +275,10 @@ function NewInvestigationPage() {
         </div>
 
         <aside className="grid content-start gap-5">
-          <SectionCard title="3 · Modèle d’analyse" description="Le modèle reçoit uniquement ce que vous fournissez.">
+          <SectionCard title="Modèle d’analyse" description="Le modèle reçoit uniquement ce que vous fournissez.">
             <div className="grid gap-3">
               <Select value={selection} onValueChange={setSelection}>
-                <SelectTrigger className="h-10 w-full bg-surface-1" aria-label="Choisir le modèle IA">
+                <SelectTrigger className="h-10 w-full" aria-label="Choisir le modèle IA">
                   <SelectValue placeholder="Choisir un modèle" />
                 </SelectTrigger>
                 <SelectContent position="popper" className="max-h-80">
@@ -288,7 +289,7 @@ function NewInvestigationPage() {
                         <SelectItem key={`${model.providerId}::${model.modelId}`} value={`${model.providerId}::${model.modelId}`}>
                           <span className="flex w-full items-center gap-2">
                             <span className="truncate">{model.label}</span>
-                            {model.isRecommended && <span className="shrink-0 rounded bg-brand/12 px-1 py-0.5 text-tiny font-medium text-brand">Conseillé</span>}
+                            {model.isRecommended && <span className="shrink-0 rounded bg-brand/12 px-1.5 py-0.5 text-xs font-medium text-brand">Conseillé</span>}
                           </span>
                         </SelectItem>
                       ))}
@@ -302,8 +303,8 @@ function NewInvestigationPage() {
                     <Sparkles aria-hidden className="size-3.5 text-brand" />
                     {selectedModel.providerName}
                   </div>
-                  <div className="mt-1.5 font-mono text-meta break-all text-muted-foreground">{selectedModel.modelId}</div>
-                  <div className="mt-2 flex items-center gap-1.5 text-micro text-success">
+                  <div className="mt-1.5 font-mono text-xs break-all text-muted-foreground">{selectedModel.modelId}</div>
+                  <div className="mt-2 flex items-center gap-1.5 text-xs text-success">
                     <Check aria-hidden className="size-3" />
                     Détecté et actif
                   </div>
@@ -344,7 +345,7 @@ function NewInvestigationPage() {
             </ul>
           </SectionCard>
 
-          <div className="rounded-xl border border-warning/20 bg-warning/5 p-4 text-meta leading-5 text-warning">
+          <div className="rounded-xl border border-warning/20 bg-warning/5 p-4 text-xs leading-5 text-warning">
             <div className="mb-1 flex items-center gap-2 font-medium">
               <TriangleAlert aria-hidden className="size-3.5" />
               Données non fiables
@@ -354,7 +355,7 @@ function NewInvestigationPage() {
         </aside>
       </div>
 
-      <div className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-none border border-border bg-card/95 p-4 backdrop-blur sm:flex-row sm:items-center lg:static">
+      <div className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-xl border border-border bg-card/95 p-3 shadow-card backdrop-blur sm:flex-row sm:items-center lg:static">
         <div className="min-w-0 flex-1 text-xs text-muted-foreground">
           {parsed?.ok ? (
             <span className="inline-flex items-center gap-2">
@@ -368,11 +369,11 @@ function NewInvestigationPage() {
             </span>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2 max-sm:[&_[data-slot=button]]:h-11 max-sm:[&_[data-slot=button]]:px-5">
-          <Button variant="ghost" size="sm" onClick={() => void submit('draft')} loading={busy === 'draft'} disabled={busy !== null || !parsed?.ok}>
+        <div className="flex flex-wrap items-center gap-2 max-sm:[&_[data-slot=button]]:h-11 max-sm:[&_[data-slot=button]]:flex-1">
+          <Button variant="ghost" size="lg" onClick={() => void submit('draft')} loading={busy === 'draft'} disabled={busy !== null || !parsed?.ok}>
             Brouillon
           </Button>
-          <Button size="sm" onClick={() => void submit('analyze')} loading={busy === 'analyze'} disabled={busy !== null || !parsed?.ok}>
+          <Button size="lg" onClick={() => void submit('analyze')} loading={busy === 'analyze'} disabled={busy !== null || !parsed?.ok}>
             Créer et analyser
             {busy === null && <ArrowRight aria-hidden />}
           </Button>

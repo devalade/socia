@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Slider } from '@/components/ui/slider'
 import { VERDICTS, VERDICT_LABELS, SEVERITIES, SEVERITY_LABELS, type Severity, type Verdict } from '@/lib/alert'
 import { createManualQueryFn, setConclusionFn, updateInvestigationFn } from '@/server/fns/investigations'
 import { generateReportFn } from '@/server/fns/reports'
@@ -119,15 +120,14 @@ export function ConclusionDialog({
               <Label htmlFor="confidence">Confiance de l’analyste</Label>
               <span className="text-xs font-medium text-subtle num">{confidence}%</span>
             </div>
-            <input
+            <Slider
               id="confidence"
-              type="range"
               min={0}
               max={100}
               step={5}
-              value={confidence}
-              onChange={(event) => setConfidence(Number(event.target.value))}
-              className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-brand"
+              value={[confidence]}
+              onValueChange={([value]) => setConfidence(value)}
+              aria-label="Confiance de l’analyste"
             />
             <p className="text-meta text-muted-foreground">0% = intuition, 100% = preuve directe et complète. La confiance reste une estimation.</p>
           </div>
@@ -139,7 +139,7 @@ export function ConclusionDialog({
               value={justification}
               onChange={(event) => setJustification(event.target.value)}
               placeholder="Expliquez quels faits et résultats soutiennent ce verdict. Citez les preuves importées. Précisez les limites restantes."
-              className="min-h-32 text-body leading-6"
+              className="min-h-32 text-sm leading-6"
             />
             <div className="flex items-center justify-between text-meta text-muted-foreground">
               <span>Minimum 20 caractères.</span>

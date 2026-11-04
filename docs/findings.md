@@ -54,24 +54,25 @@
 - **Fix**: `min-w-0` on report sections and the table wrapper, width containment on the article.
 - **Evidence**: audit reports 0 failures and no sideways scroll at 390px.
 
-## 9. A4 optical warnings are accepted
+## 9. Optical side bearings are encoded
 
-The landing and investigation display headings report A4: the ink starts 2-4px inside the box because of the font's side bearing. Applying the suggested negative margin creates an A1 failure against the text below (the boxes no longer share an axis). We prioritise the shared axis and accept the A4 warning as an optical exception.
+- **Symptom**: the landing hero and the report title reported A4: the ink started 2-4px inside the box because of the font's side bearing.
+- **Fix**: added `optical-043` for the landing hero and `optical-08` for the report title. The negative indent is part of the type utility, not a one-off margin.
+- **Evidence**: premium UI audit reports 0 warnings on the landing and report at 1440x900 and 390x844.
 
-## 10. The first interface was a generic dark dashboard
+## 10. The editorial dossier was itself the slop
 
-- **Symptom**: the product used the premium primitives, but the composition was still a stock sidebar, KPI cards and rounded panels. The owner called it slop, correctly.
-- **Cause**: the design system was applied at the component level, not at the page level. There was no direction, so every screen defaulted to the same dashboard template.
-- **Fix**: rebuilt the product around **Ink & Signal**, an editorial dossier direction: Instrument Serif display, Geist UI, Geist Mono evidence, warm ink surfaces, a single vermilion accent, ruled columns, numbered exhibits, and no gradient or glow. The sidebar became a masthead with numbered navigation. The dashboard became a briefing sheet with a stat band, an activity chart and a docket ledger. The investigation became a case file with numbered exhibit tabs and a margin column. The landing became a front page with a masthead, a case plate, a sommaire and ruled spreads.
-- **Evidence**: `docs/shots/` contains the landing, login, dashboard, history, new investigation, investigation, report and settings at desktop and phone widths. The premium UI audit reports 0 failures on every route at 1440x900 and 390x844.
+- **Symptom**: the first premium pass replaced a generic dashboard with an editorial dossier: Instrument Serif, a numbered masthead, 9px mono labels and 4px control radii. The sign-in page was still a split marketing panel louder than the form. The owner called it slop again.
+- **Cause**: the design system was applied as a style layer, not as the measured premium-react system. The composition was louder than the task.
+- **Fix**: rebuilt around **Signal Room**, the premium-react measurements applied to the SOCIA brand: Geist everywhere, paper-white primary actions in dark, vermilion as a signal colour, a 256px sidebar, 36/40px controls, 8px control radii, 13/14/12px type, inline field errors, no serif, no numbered masthead, no split auth panel. The auth page is a centred 400px column. The dashboard is a KPI and table surface. The investigation is a tabbed case workspace with a context rail. The report is a print-ready document.
+- **Evidence**: `docs/shots/` contains the rebuilt landing, login, dashboard, history, new investigation, investigation, report and settings at desktop and phone widths. The premium UI audit reports 0 FAIL and 0 WARN on every route at 1440x900 and 390x844, in dark and light, including the settings tabs. The report print view was checked visually.
 
 ## Verification
 
 - `pnpm typecheck`: pass
 - `pnpm lint`: 0 warnings, 0 errors
 - `pnpm test`: 27 tests pass
-- `pnpm build`: pass
-- Premium UI audit: 0 failures on landing, login, dashboard, history, new investigation, investigation, report, settings at 1440x900 and 390x844. Remaining warnings: A4 optical side bearing on the landing hero, and two spacing warnings on history.
+- Premium UI audit: 0 FAIL and 0 WARN on landing, login, dashboard, history, new investigation, investigation, report and settings at 1440x900 and 390x844, in dark and light. Settings tabs and the report print view are included. Off-grid spacing is 0% on the app routes; the landing is 2% and has no warning.
 - Manual real-AI run: initial analysis, import, reanalysis, conclusion, report, Markdown download
-- Production: `https://socia.devalade.me` deployed with Void, D1 migrations applied, Workers AI binding active, smoke passed. The temporary smoke account was removed; the remaining admin account is `me@devalade.me`.
-- Roles: second account created as analyst; no Administration link, /app/settings redirects, no mutation controls on another analyst's investigation
+- Production: `https://socia.devalade.me` still runs the previous interface. This rebuild has not been deployed.
+- Roles: the local audit account was promoted to admin only to audit `/app/settings`; the production role split is unchanged.

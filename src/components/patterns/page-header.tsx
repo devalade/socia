@@ -16,22 +16,16 @@ export function PageHeader({
   className?: string
 }) {
   return (
-    <header className={cn('flex flex-col gap-5 border-b border-border pb-8', className)}>
-      <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-5">
-        <div className="min-w-0 max-w-4xl">
-          {eyebrow && (
-            <div className="mb-3 flex items-center gap-2 font-mono text-micro font-medium tracking-caps text-muted-foreground uppercase">
-              {eyebrow}
-            </div>
-          )}
-          <h1 className="font-display text-4xl leading-poster tracking-poster text-foreground sm:text-5xl">
-            {title}
-          </h1>
-          {description && <p className="mt-3 max-w-reading text-sm leading-7 text-muted-foreground">{description}</p>}
+    <header className={cn('flex flex-col gap-4', className)}>
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-6 gap-y-4">
+        <div className="min-w-0">
+          {eyebrow && <div className="mb-1 text-label font-medium text-brand">{eyebrow}</div>}
+          <h1 className="text-2xl leading-8 font-semibold tracking-title text-foreground">{title}</h1>
+          {description && <p className="mt-1 max-w-reading text-sm leading-6 text-muted-foreground">{description}</p>}
         </div>
-        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2 max-sm:[&_[data-slot=button]]:h-11 max-sm:[&_[data-slot=button]]:px-5">{actions}</div>}
+        {actions && <div className="flex min-w-0 flex-wrap items-center gap-2 max-sm:w-full max-sm:[&_[data-slot=button]]:h-11 max-sm:[&_[data-slot=button]]:ps-4! max-sm:[&_[data-slot=button]]:pe-4! sm:shrink-0">{actions}</div>}
       </div>
-      {meta && <div className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-micro tracking-caps text-muted-foreground uppercase">{meta}</div>}
+      {meta && <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">{meta}</div>}
     </header>
   )
 }

@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusBadge } from '@/components/premium/status-badge'
 import { Truncate } from '@/components/premium/truncate'
 import { PageHeader } from '@/components/patterns/page-header'
@@ -36,7 +37,6 @@ import { getAuditFn } from '@/server/fns/audit'
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, ROLES, type Role } from '@/lib/roles'
 import { dateTime } from '@/lib/dates'
 import { RelativeTime } from '@/components/patterns/relative-time'
-import { cn } from '@/lib/utils'
 
 const search = z.object({
   tab: z.enum(['ia', 'equipe', 'audit', 'securite']).optional(),
@@ -71,6 +71,8 @@ const TABS = [
 
 function SettingsPage() {
   const { providerData, team, audit } = Route.useLoaderData()
+  const activeProviders = providerData.providers.filter((provider) => provider.isActive).length
+  const activeModels = providerData.models.filter((model) => model.isActive).length
   const filters = Route.useSearch()
   const router = useRouter()
   const navigate = Route.useNavigate()
@@ -151,43 +153,36 @@ function SettingsPage() {
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       <PageHeader
-        eyebrow={<><LockKeyhole aria-hidden className="size-3.5" />Administration</>}
-        title="Modèles, équipe et traçabilité"
+        title="Administration"
         description="L’espace d’administration contrôle les fournisseurs d’IA, les rôles et le journal d’audit. Il est réservé aux administrateurs et chaque action y est enregistrée."
         actions={<Button size="sm" variant="outline" onClick={() => void refresh()} loading={busy === 'refresh-all'}><RefreshCw aria-hidden />Détecter tous les modèles</Button>}
         meta={
           <>
-            <span>{providerData.providers.filter((provider) => provider.isActive).length} fournisseur(s) actif(s)</span>
-            <span>{providerData.models.filter((model) => model.isActive).length} modèle(s) actif(s)</span>
-            <span>{team.length} membre(s)</span>
+            <span>{activeProviders} fournisseur{activeProviders > 1 ? 's' : ''} actif{activeProviders > 1 ? 's' : ''}</span>
+            <span>{activeModels} modèle{activeModels > 1 ? 's' : ''} actif{activeModels > 1 ? 's' : ''}</span>
+            <span>{team.length} membre{team.length > 1 ? 's' : ''}</span>
           </>
         }
       />
 
-      <div className="scroll-thin flex items-center gap-1 overflow-x-auto border-b border-border/80">
-        {TABS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setTab(item.id)}
-            className={cn(
-              'relative inline-flex h-10 shrink-0 items-center gap-2 px-3 text-small font-medium text-muted-foreground transition-colors hover:text-foreground',
-              tab === item.id && 'text-foreground after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand',
-            )}
-          >
-            <item.icon aria-hidden className="size-3.5" />
-            {item.label}
-          </button>
-        ))}
-      </div>
+      <Tabs value={tab} onValueChange={(value) => setTab(value as (typeof TABS)[number]['id'])}>
+        <TabsList className="h-9 w-full justify-start overflow-x-auto p-1">
+          {TABS.map((item) => (
+            <TabsTrigger key={item.id} value={item.id} className="shrink-0 gap-1.5 px-3 text-xs">
+              <item.icon aria-hidden className="size-3.5" />
+              {item.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {tab === 'ia' && (
-        <div className="grid gap-5">
-          <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 gap-5">
+          <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
             {providerData.providers.map((provider) => (
-              <div key={provider.id} className="rounded-xl border border-border/80 bg-card p-5">
+              <div key={provider.id} className="min-w-0 rounded-xl border border-border bg-card p-5 shadow-card">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
                     <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
@@ -195,15 +190,15 @@ function SettingsPage() {
                     </span>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-ui font-medium">{provider.name}</h3>
+                        <h3 className="min-w-0 break-words text-sm font-medium">{provider.name}</h3>
                         <StatusBadge tone={!provider.isActive ? 'neutral' : provider.lastError ? 'warning' : 'success'}>
                           {!provider.isActive ? 'Inactif' : provider.lastError ? 'Erreur' : 'Actif'}
                         </StatusBadge>
                       </div>
-                      <p className="mt-1 text-meta text-muted-foreground">
+                      <p className="mt-1 break-words text-xs text-muted-foreground">
                         {provider.kind === 'workers-ai' ? 'Binding Workers AI du compte Cloudflare' : provider.baseUrl}
                       </p>
-                      <p className="mt-1 text-meta text-muted-foreground">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {provider.modelCount} modèle{provider.modelCount > 1 ? 's' : ''} · {provider.lastCheckedAt ? <>vérifié <RelativeTime value={provider.lastCheckedAt} /></> : 'jamais vérifié'}
                         {provider.keyHint && ` · clé ••••${provider.keyHint}`}
                       </p>
@@ -224,15 +219,15 @@ function SettingsPage() {
                   )}
                 </div>
                 {provider.lastError && (
-                  <p className="mt-3 rounded-md border border-warning/20 bg-warning/5 px-3 py-2 text-meta leading-5 text-warning">{provider.lastError}</p>
+                  <p className="mt-3 rounded-md border border-warning/20 bg-warning/5 px-3 py-2 text-xs leading-5 text-warning">{provider.lastError}</p>
                 )}
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <Button size="xs" variant="outline" onClick={() => void refresh(provider.id)} loading={busy === `refresh-${provider.id}`} disabled={busy !== null}>
+                  <Button size="sm" variant="outline" onClick={() => void refresh(provider.id)} loading={busy === `refresh-${provider.id}`} disabled={busy !== null}>
                     <RefreshCw aria-hidden />
                     Détecter les modèles
                   </Button>
                   {provider.kind === 'openai-compatible' && (
-                    <span className="text-micro text-muted-foreground">Clé chiffrée AES-GCM. Jamais renvoyée au navigateur.</span>
+                    <span className="text-xs text-muted-foreground">Clé chiffrée AES-GCM. Jamais renvoyée au navigateur.</span>
                   )}
                 </div>
               </div>
@@ -240,7 +235,7 @@ function SettingsPage() {
             <button
               type="button"
               onClick={() => setAddOpen(true)}
-              className="flex min-h-36 items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-surface-1/30 text-small font-medium text-muted-foreground transition-colors hover:border-brand/40 hover:bg-brand/5 hover:text-foreground"
+              className="flex min-h-36 min-w-0 items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-surface-1/30 px-4 text-center text-sm font-medium text-muted-foreground transition-colors hover:border-brand/40 hover:bg-brand/5 hover:text-foreground"
             >
               <Plus aria-hidden className="size-4" />
               Ajouter un fournisseur compatible OpenAI
@@ -254,7 +249,7 @@ function SettingsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-table-x border-collapse text-left text-xs">
                   <thead>
-                    <tr className="border-b border-border/70 text-micro tracking-pill text-muted-foreground uppercase">
+                    <tr className="border-b border-border/70 text-xs text-muted-foreground">
                       <th className="px-5 py-2 font-medium">Modèle</th>
                       <th className="px-3 py-2 font-medium">Fournisseur</th>
                       <th className="px-3 py-2 font-medium">Recommandé</th>
@@ -267,13 +262,13 @@ function SettingsPage() {
                       <tr key={model.id} className="hover:bg-accent/20">
                         <td className="max-w-search px-5 py-3">
                           <Truncate className="font-medium">{model.label}</Truncate>
-                          <Truncate className="mt-0.5 font-mono text-micro text-muted-foreground">{model.modelId}</Truncate>
+                          <Truncate className="mt-0.5 font-mono text-xs text-muted-foreground">{model.modelId}</Truncate>
                         </td>
                         <td className="px-3 py-3 text-muted-foreground">{model.providerName}</td>
                         <td className="px-3 py-3">{model.isRecommended ? <StatusBadge tone="info">Conseillé</StatusBadge> : <span className="text-muted-foreground">n/d</span>}</td>
                         <td className="px-3 py-3"><StatusBadge tone={model.isActive ? 'success' : 'neutral'}>{model.isActive ? 'Actif' : 'Inactif'}</StatusBadge></td>
                         <td className="px-5 py-3 text-right">
-                          <Button size="xs" variant="outline" onClick={() => void test(model.providerId, model.modelId)} loading={busy === `test-${model.providerId}-${model.modelId}`} disabled={busy !== null}>
+                          <Button size="sm" variant="outline" onClick={() => void test(model.providerId, model.modelId)} loading={busy === `test-${model.providerId}-${model.modelId}`} disabled={busy !== null}>
                             Tester
                           </Button>
                         </td>
@@ -292,7 +287,7 @@ function SettingsPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-table-wide border-collapse text-left text-xs">
               <thead>
-                <tr className="border-b border-border/70 text-micro tracking-pill text-muted-foreground uppercase">
+                <tr className="border-b border-border/70 text-xs text-muted-foreground">
                   <th className="px-5 py-2 font-medium">Membre</th>
                   <th className="px-3 py-2 font-medium">Fonction</th>
                   <th className="px-3 py-2 font-medium">Rôle</th>
@@ -302,23 +297,23 @@ function SettingsPage() {
               <tbody className="divide-y divide-border/60">
                 {team.map((member) => (
                   <tr key={member.userId} className="hover:bg-accent/20">
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3">
                       <div className="font-medium">{member.name}</div>
-                      <div className="mt-0.5 text-meta text-muted-foreground">{member.email}</div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">{member.email}</div>
                     </td>
-                    <td className="px-3 py-3.5 text-muted-foreground">{member.title}</td>
-                    <td className="px-3 py-3.5">
+                    <td className="px-3 py-3 text-muted-foreground">{member.title}</td>
+                    <td className="px-3 py-3">
                       <Select value={member.role} onValueChange={(value) => void changeRole(member.userId, value as Role)} disabled={busy === `role-${member.userId}`}>
-                        <SelectTrigger className="h-8 w-36 bg-surface-1 text-xs" aria-label={`Rôle de ${member.name}`}>
+                        <SelectTrigger className="h-9 w-40" aria-label={`Rôle de ${member.name}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {ROLES.map((role) => <SelectItem key={role} value={role}>{ROLE_LABELS[role]}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <p className="mt-1 max-w-56 text-micro leading-4 text-muted-foreground">{ROLE_DESCRIPTIONS[member.role]}</p>
+                      <p className="mt-1 max-w-56 text-xs leading-4 text-muted-foreground">{ROLE_DESCRIPTIONS[member.role]}</p>
                     </td>
-                    <td className="px-5 py-3.5 text-right text-muted-foreground">{dateTime(member.createdAt)}</td>
+                    <td className="px-5 py-3 text-right text-muted-foreground">{dateTime(member.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -337,10 +332,11 @@ function SettingsPage() {
                 event.preventDefault()
                 void navigate({ search: (previous) => ({ ...previous, tab: 'audit', auditSearch: auditTerm.trim() || undefined, auditPage: 1 }) })
               }}
-              className="flex items-center gap-2"
+              className="flex flex-wrap items-center gap-2 max-sm:w-full"
             >
-              <Input value={auditTerm} onChange={(event) => setAuditTerm(event.target.value)} placeholder="Action, e-mail, identifiant" className="h-8 w-56 bg-surface-1 text-xs" />
-              <Button type="submit" size="xs" variant="outline">Filtrer</Button>
+              <Label htmlFor="audit-search" className="text-xs font-normal text-muted-foreground">Rechercher</Label>
+              <Input id="audit-search" value={auditTerm} onChange={(event) => setAuditTerm(event.target.value)} placeholder="Action, e-mail, identifiant" className="h-11 min-w-0 flex-1 sm:h-9 sm:w-56 sm:flex-none" />
+              <Button type="submit" size="sm" variant="outline" className="h-11 sm:h-9">Filtrer</Button>
             </form>
           }
           flush
@@ -352,7 +348,7 @@ function SettingsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-table-x border-collapse text-left text-xs">
                   <thead>
-                    <tr className="border-b border-border/70 text-micro tracking-pill text-muted-foreground uppercase">
+                    <tr className="border-b border-border/70 text-xs text-muted-foreground">
                       <th className="px-5 py-2 font-medium">Action</th>
                       <th className="px-3 py-2 font-medium">Acteur</th>
                       <th className="px-3 py-2 font-medium">Cible</th>
@@ -364,28 +360,28 @@ function SettingsPage() {
                     {audit.rows.map((row) => (
                       <tr key={row.id} className="align-top hover:bg-accent/20">
                         <td className="px-5 py-3">
-                          <span className="font-mono text-meta text-subtle">{row.action}</span>
+                          <span className="font-mono text-xs text-subtle">{row.action}</span>
                           {Object.keys(row.metadata).length > 0 && (
                             <details className="mt-1">
-                              <summary className="cursor-pointer text-micro text-muted-foreground hover:text-foreground">Détails</summary>
-                              <pre className="mt-1 max-w-form overflow-auto rounded border border-border bg-surface-1 p-2 font-mono text-micro text-muted-foreground">{JSON.stringify(row.metadata, null, 2)}</pre>
+                              <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">Détails</summary>
+                              <pre className="mt-1 max-w-form overflow-auto rounded border border-border bg-surface-1 p-2 font-mono text-xs text-muted-foreground">{JSON.stringify(row.metadata, null, 2)}</pre>
                             </details>
                           )}
                         </td>
                         <td className="px-3 py-3 text-muted-foreground">{row.actorEmail || 'Système'}</td>
-                        <td className="px-3 py-3 font-mono text-micro text-muted-foreground">{row.entityType}{row.entityId ? ` · ${row.entityId}` : ''}</td>
-                        <td className="px-3 py-3 font-mono text-micro text-muted-foreground">{row.ip || 'n/d'}</td>
+                        <td className="px-3 py-3 font-mono text-xs text-muted-foreground">{row.entityType}{row.entityId ? ` · ${row.entityId}` : ''}</td>
+                        <td className="px-3 py-3 font-mono text-xs text-muted-foreground">{row.ip || 'n/d'}</td>
                         <td className="px-5 py-3 text-right text-muted-foreground">{dateTime(row.createdAt)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div className="flex items-center justify-between border-t border-border/70 px-5 py-3 text-meta text-muted-foreground">
+              <div className="flex items-center justify-between border-t border-border/70 px-5 py-3 text-xs text-muted-foreground">
                 <span>{audit.total} entrée{audit.total > 1 ? 's' : ''} · page {audit.page}</span>
                 <div className="flex gap-2">
-                  <Button size="xs" variant="outline" disabled={audit.page <= 1} onClick={() => void navigate({ search: (previous) => ({ ...previous, tab: 'audit', auditPage: audit.page - 1 }) })}>Précédent</Button>
-                  <Button size="xs" variant="outline" disabled={audit.page * audit.pageSize >= audit.total} onClick={() => void navigate({ search: (previous) => ({ ...previous, tab: 'audit', auditPage: audit.page + 1 }) })}>Suivant</Button>
+                  <Button size="sm" variant="outline" disabled={audit.page <= 1} onClick={() => void navigate({ search: (previous) => ({ ...previous, tab: 'audit', auditPage: audit.page - 1 }) })}>Précédent</Button>
+                  <Button size="sm" variant="outline" disabled={audit.page * audit.pageSize >= audit.total} onClick={() => void navigate({ search: (previous) => ({ ...previous, tab: 'audit', auditPage: audit.page + 1 }) })}>Suivant</Button>
                 </div>
               </div>
             </>
@@ -446,7 +442,7 @@ function AddProviderDialog({ open, onOpenChange }: { open: boolean; onOpenChange
           <DialogTitle>Ajouter un fournisseur compatible OpenAI</DialogTitle>
           <DialogDescription>L’URL doit exposer /models et /chat/completions. La clé est chiffrée avant d’être enregistrée.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <div className="grid gap-2">
             <Label htmlFor="provider-name">Nom</Label>
             <Input id="provider-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Ollama interne, OpenAI, Azure…" />
@@ -459,7 +455,7 @@ function AddProviderDialog({ open, onOpenChange }: { open: boolean; onOpenChange
             <Label htmlFor="provider-key">Clé API</Label>
             <Input id="provider-key" type="password" value={apiKey} onChange={(event) => setApiKey(event.target.value)} autoComplete="off" placeholder="sk-…" />
           </div>
-          <p className="flex items-start gap-2 rounded-md border border-border bg-surface-1 px-3 py-2 text-meta leading-5 text-muted-foreground">
+          <p className="flex items-start gap-2 rounded-md border border-border bg-surface-1 px-3 py-2 text-xs leading-5 text-muted-foreground">
             <KeyRound aria-hidden className="mt-0.5 size-3.5 shrink-0 text-brand" />
             Chiffrement AES-GCM au repos. La clé n’est jamais renvoyée au client, jamais journalisée, et les erreurs du fournisseur sont expurgées.
           </p>
@@ -507,16 +503,16 @@ function SecurityTab() {
     },
   ]
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
       {items.map((item) => (
-        <div key={item.title} className="rounded-xl border border-border/80 bg-card p-5">
+        <div key={item.title} className="min-w-0 rounded-xl border border-border bg-card p-5 shadow-card">
           <div className="flex items-center gap-2">
             <span className="grid size-9 place-items-center rounded-lg bg-brand/10 text-brand"><item.icon aria-hidden className="size-4" /></span>
-            <h3 className="text-ui font-medium">{item.title}</h3>
+            <h3 className="text-sm font-medium">{item.title}</h3>
           </div>
           <ul className="mt-4 grid gap-2">
             {item.points.map((point) => (
-              <li key={point} className="flex items-start gap-2 text-meta leading-5 text-muted-foreground">
+              <li key={point} className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
                 <CheckCircle2 aria-hidden className="mt-0.5 size-3.5 shrink-0 text-success" />
                 {point}
               </li>
@@ -524,12 +520,12 @@ function SecurityTab() {
           </ul>
         </div>
       ))}
-      <div className="rounded-xl border border-border/80 bg-card p-5 lg:col-span-2">
+      <div className="min-w-0 rounded-xl border border-border bg-card p-5 shadow-card lg:col-span-2">
         <div className="flex items-center gap-2">
           <span className="grid size-9 place-items-center rounded-lg bg-warning/10 text-warning"><XCircle aria-hidden className="size-4" /></span>
-          <h3 className="text-ui font-medium">Ce que SOCIA ne fait pas, par conception</h3>
+          <h3 className="text-sm font-medium">Ce que SOCIA ne fait pas, par conception</h3>
         </div>
-        <div className="mt-4 grid gap-3 text-meta leading-5 text-muted-foreground sm:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-3 text-xs leading-5 text-muted-foreground sm:grid-cols-2">
           <p>Il ne se connecte ni à Kibana ni à Elasticsearch. Aucune requête KQL n’est exécutée par le serveur.</p>
           <p>Il ne reçoit pas de résultat sans un import explicite de l’analyste. Un résultat vide n’est jamais une preuve d’absence.</p>
           <p>Il ne présente pas une sortie de modèle comme une conclusion. Le verdict reste une décision humaine.</p>

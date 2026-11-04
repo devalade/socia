@@ -1,14 +1,13 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, ShieldCheck } from 'lucide-react'
+import { CircleAlert, Eye, EyeOff, LockKeyhole } from 'lucide-react'
 import { z } from 'zod'
-import { Brand } from '@/components/brand'
+import { Brand, BrandMark } from '@/components/brand'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { authClient } from '@/lib/auth-client'
 import { getViewerFn } from '@/server/fns/session'
-import { cn } from '@/lib/utils'
 
 const search = z.object({ redirect: z.string().optional(), mode: z.enum(['signin', 'signup']).optional() })
 
@@ -22,254 +21,288 @@ export const Route = createFileRoute('/connexion')({
 })
 
 type Mode = 'signin' | 'signup'
-type Problem = { tone: 'error' | 'info'; message: string } | null
+type FieldKey = 'name' | 'email' | 'password' | 'confirm'
+type FieldErrors = Partial<Record<FieldKey, string>>
+
+const FIELD_ORDER: Record<Mode, FieldKey[]> = {
+  signin: ['email', 'password'],
+  signup: ['name', 'email', 'password', 'confirm'],
+}
+
+const INPUT_CLASS = 'h-10 rounded-md focus-visible:outline-none focus-visible:ring-ring/30'
+
+function validate(mode: Mode, values: Record<FieldKey, string>): FieldErrors {
+  const errors: FieldErrors = {}
+  const email = values.email.trim()
+
+  if (!email) errors.email = 'Saisissez votre adresse e-mail pour continuer.'
+  else if (!/^\S+@\S+\.\S+$/.test(email)) errors.email = 'Saisissez une adresse complète, par exemple analyste@organisation.tld.'
+
+  if (!values.password) errors.password = 'Saisissez votre mot de passe.'
+  else if (mode === 'signup' && values.password.length < 10) errors.password = 'Choisissez un mot de passe d’au moins 10 caractères.'
+
+  if (mode === 'signup') {
+    if (values.name.trim().length < 2) errors.name = 'Saisissez votre nom complet.'
+    if (!values.confirm) errors.confirm = 'Confirmez votre mot de passe.'
+    else if (values.confirm !== values.password) errors.confirm = 'Les deux mots de passe ne correspondent pas. Saisissez le même mot de passe.'
+  }
+
+  return errors
+}
+
+function problemFor(status: number | undefined, mode: Mode) {
+  if (status === 401) return 'Adresse e-mail ou mot de passe incorrect. Vérifiez la saisie, puis réessayez.'
+  if (status === 429) return 'Trop de tentatives. Patientez une minute, puis réessayez.'
+  return mode === 'signup'
+    ? 'Le compte n’a pas pu être créé. Utilisez une autre adresse e-mail, ou connectez-vous si un compte existe déjà.'
+    : 'La connexion a échoué. Vérifiez votre adresse e-mail et votre mot de passe, puis réessayez.'
+}
+
+function Field({
+  id,
+  label,
+  hint,
+  error,
+  children,
+}: {
+  id: string
+  label: string
+  hint?: string
+  error?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div>
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <Label htmlFor={id} className="text-small font-medium text-foreground">
+          {label}
+        </Label>
+        {hint && (
+          <span id={`${id}-hint`} className="text-micro text-muted-foreground">
+            {hint}
+          </span>
+        )}
+      </div>
+      {children}
+      {error && (
+        <p id={`${id}-error`} className="mt-1.5 text-micro text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
 
 function SignInPage() {
   const { redirect: next, mode: initialMode } = Route.useSearch()
   const navigate = useNavigate()
   const [mode, setMode] = useState<Mode>(initialMode ?? 'signin')
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
+  const [values, setValues] = useState<Record<FieldKey, string>>({ name: '', email: '', password: '', confirm: '' })
+  const [errors, setErrors] = useState<FieldErrors>({})
+  const [problem, setProblem] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [problem, setProblem] = useState<Problem>(null)
   const [reveal, setReveal] = useState(false)
+
+  const nameRef = useRef<HTMLInputElement>(null)
+  const emailRef = useRef<HTMLInputElement>(null)
+  const passwordRef = useRef<HTMLInputElement>(null)
+  const confirmRef = useRef<HTMLInputElement>(null)
+  const focusRefs = { name: nameRef, email: emailRef, password: passwordRef, confirm: confirmRef }
+
+  function update(field: FieldKey, value: string) {
+    setValues((current) => ({ ...current, [field]: value }))
+    setErrors((current) => (current[field] ? { ...current, [field]: undefined } : current))
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     setProblem(null)
-    if (!email.trim() || !password) {
-      setProblem({ tone: 'error', message: 'Renseignez votre adresse e-mail et votre mot de passe.' })
+
+    const found = validate(mode, values)
+    setErrors(found)
+    const first = FIELD_ORDER[mode].find((field) => found[field])
+    if (first) {
+      focusRefs[first].current?.focus()
       return
     }
-    if (mode === 'signup') {
-      if (name.trim().length < 2) {
-        setProblem({ tone: 'error', message: 'Renseignez votre nom complet.' })
-        return
-      }
-      if (password.length < 10) {
-        setProblem({ tone: 'error', message: 'Le mot de passe doit contenir au moins 10 caractères.' })
-        return
-      }
-      if (password !== confirm) {
-        setProblem({ tone: 'error', message: 'Les deux mots de passe ne correspondent pas.' })
-        return
-      }
-    }
+
     setBusy(true)
     try {
       const result =
         mode === 'signin'
-          ? await authClient.signIn.email({ email: email.trim(), password, rememberMe: true })
-          : await authClient.signUp.email({ email: email.trim(), password, name: name.trim() })
+          ? await authClient.signIn.email({ email: values.email.trim(), password: values.password, rememberMe: true })
+          : await authClient.signUp.email({ email: values.email.trim(), password: values.password, name: values.name.trim() })
       if (result.error) {
-        const status = result.error.status
-        setProblem({
-          tone: 'error',
-          message:
-            status === 401
-              ? 'Adresse e-mail ou mot de passe incorrect.'
-              : status === 429
-                ? 'Trop de tentatives. Réessayez dans une minute.'
-                : mode === 'signup'
-                  ? 'Le compte n’a pas pu être créé. Vérifiez l’adresse e-mail et la longueur du mot de passe.'
-                  : 'La connexion a échoué. Vérifiez vos informations.',
-        })
+        setProblem(problemFor(result.error.status, mode))
         return
       }
       await navigate({ to: next?.startsWith('/') ? next : '/app', replace: true })
     } catch {
-      setProblem({ tone: 'error', message: 'Le service d’authentification est indisponible. Réessayez.' })
+      setProblem('Le service d’authentification ne répond pas. Vérifiez votre connexion, puis réessayez.')
     } finally {
       setBusy(false)
     }
   }
 
-  function switchMode(nextMode: Mode) {
-    setMode(nextMode)
+  function switchMode() {
+    setMode((current) => (current === 'signin' ? 'signup' : 'signin'))
+    setErrors({})
     setProblem(null)
+    setReveal(false)
   }
 
+  const passwordDescribedBy =
+    [mode === 'signup' ? 'password-hint' : null, errors.password ? 'password-error' : null].filter(Boolean).join(' ') || undefined
+
   return (
-    <div className="grid min-h-dvh bg-background layout-auth">
-      <aside className="relative hidden overflow-hidden border-r border-border bg-sidebar p-10 lg:flex lg:flex-col">
-        <div className="absolute inset-0 bg-dots opacity-40" aria-hidden />
-        <div className="absolute -top-40 -left-40 signal-glow-lg" aria-hidden />
-        <div className="relative z-10 flex items-center justify-between">
-          <Link to="/" aria-label="Accueil SOCIA">
-            <Brand />
-          </Link>
-          <span className="border border-border px-2 py-1 font-mono text-tiny tracking-label text-muted-foreground uppercase">
-            Analyste SOC
-          </span>
-        </div>
+    <div className="relative flex min-h-dvh flex-col bg-background">
+      <div aria-hidden className="auth-field pointer-events-none fixed inset-0" />
 
-        <div className="relative z-10 my-auto max-w-xl py-16">
-          <p className="mb-5 text-meta font-medium tracking-wider text-brand uppercase">Le SIEM reste votre terrain</p>
-          <h1 className="text-display-sm leading-display font-semibold tracking-display text-foreground">
-            Comprendre l’alerte.
-            <br />
-            <em className="text-brand">Garder la main.</em>
-          </h1>
-          <p className="mt-5 max-w-md text-lead leading-7 text-muted-foreground">
-            SOCIA structure le raisonnement de l’analyste : faits observés, déductions, hypothèses et informations manquantes. Vous exécutez vos requêtes. Vous décidez.
-          </p>
+      <header className="relative flex h-14 items-center justify-between border-b border-border px-5 sm:px-6">
+        <Brand />
+        <Link
+          to="/"
+          className="inline-flex h-8 items-center text-small text-muted-foreground transition-colors duration-150 hover:text-foreground"
+        >
+          Accueil
+        </Link>
+      </header>
 
-          <div className="mt-9 grid gap-3">
-            {[
-              'Chaque analyse sépare les faits des hypothèses.',
-              'Aucune requête n’est exécutée à votre place.',
-              'Le contexte complet reste disponible après interruption.',
-            ].map((line) => (
-              <div key={line} className="flex items-start gap-3 text-body leading-6 text-subtle">
-                <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
-                {line}
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-10 border border-border p-4">
-            <div className="mb-3 flex items-center justify-between text-micro font-medium tracking-label text-muted-foreground uppercase">
-              <span>Analyse initiale</span>
-              <span className="text-brand">Faits / hypothèses</span>
-            </div>
-            <div className="grid gap-2 text-small leading-5 text-subtle">
-              <p className="border-l-2 border-success py-1.5 pl-3">
-                <span className="font-medium text-success">Fait.</span> Commande PowerShell encodée lancée par winword.exe sur WIN-FIN-042.
-              </p>
-              <p className="border-l-2 border-warning py-1.5 pl-3">
-                <span className="font-medium text-warning">Hypothèse.</span> Exécution d’un document piégé, à confirmer par les journaux de messagerie.
-              </p>
-              <p className="border-l-2 border-unknown py-1.5 pl-3">
-                <span className="font-medium text-muted-foreground">Manque.</span> Hash du document et identité de l’expéditeur.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <p className="relative z-10 text-meta text-muted-foreground">
-          Les données importées sont traitées comme non fiables. Les clés des fournisseurs restent chiffrées.
-        </p>
-      </aside>
-
-      <main className="flex min-h-dvh items-center justify-center px-4 py-10 sm:px-8">
-        <div className="w-full max-w-form">
-          <div className="mb-8 flex items-center justify-between lg:hidden">
-            <Brand />
-            <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
-              Accueil
-            </Link>
-          </div>
-
-          <div className="mb-7">
-            <p className="mb-2 text-meta font-medium tracking-wide text-muted-foreground uppercase">
-              {mode === 'signin' ? 'Accès sécurisé' : 'Créer un compte'}
-            </p>
-            <h2 className="font-display text-4xl leading-poster tracking-poster">
-              {mode === 'signin' ? 'Reprendre l’investigation' : 'Rejoindre l’espace analyste'}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+      <main className="relative flex flex-1 items-center justify-center px-5 py-6 sm:px-6 sm:py-12">
+        <div className="w-full max-w-auth">
+          <div className="grid justify-items-center text-center">
+            <BrandMark className="size-8" />
+            <h1 className="mt-5 text-2xl leading-7 font-semibold tracking-title text-foreground">
+              {mode === 'signin' ? 'Se connecter à SOCIA' : 'Créer votre espace'}
+            </h1>
+            <p className="mt-1.5 text-sm leading-6 text-balance text-muted-foreground">
               {mode === 'signin'
-                ? 'Connectez-vous pour retrouver vos alertes, vos hypothèses et vos rapports.'
+                ? 'Retrouvez vos dossiers, vos hypothèses et vos rapports.'
                 : 'Le premier compte créé devient administrateur de l’espace.'}
             </p>
           </div>
 
-          <div className="mb-6 flex gap-8 border-b border-border">
-            <button
-              type="button"
-              onClick={() => switchMode('signin')}
-              className={cn(
-                'relative h-11 text-xs font-medium text-muted-foreground transition-colors sm:h-9',
-                mode === 'signin' && 'text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-brand',
-              )}
-            >
-              Connexion
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode('signup')}
-              className={cn(
-                'relative h-11 text-xs font-medium text-muted-foreground transition-colors sm:h-9',
-                mode === 'signup' && 'text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-brand',
-              )}
-            >
-              Créer un compte
-            </button>
-          </div>
-
-          <form onSubmit={submit} className="grid gap-4" noValidate>
+          <form noValidate onSubmit={submit} aria-busy={busy} className="mt-8 grid gap-5">
             {mode === 'signup' && (
-              <div className="grid gap-2">
-                <Label htmlFor="name" className="font-mono text-tiny tracking-caps uppercase">Nom complet</Label>
-                <Input id="name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="Amina Koffi" className="h-11 sm:h-9" />
-              </div>
+              <Field id="name" label="Nom complet" error={errors.name}>
+                <Input
+                  ref={nameRef}
+                  id="name"
+                  name="name"
+                  value={values.name}
+                  onChange={(event) => update('name', event.target.value)}
+                  autoComplete="name"
+                  placeholder="Amina Koffi"
+                  aria-invalid={errors.name ? true : undefined}
+                  aria-describedby={errors.name ? 'name-error' : undefined}
+                  required
+                  className={INPUT_CLASS}
+                />
+              </Field>
             )}
-            <div className="grid gap-2">
-              <Label htmlFor="email" className="font-mono text-tiny tracking-caps uppercase">Adresse e-mail</Label>
-              <Input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="analyste@organisation.tld" className="h-11 sm:h-9" />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password" className="font-mono text-tiny tracking-caps uppercase">Mot de passe</Label>
+
+            <Field id="email" label="Adresse e-mail" error={errors.email}>
+              <Input
+                ref={emailRef}
+                id="email"
+                name="email"
+                type="email"
+                inputMode="email"
+                spellCheck={false}
+                value={values.email}
+                onChange={(event) => update('email', event.target.value)}
+                autoComplete="email"
+                placeholder="analyste@organisation.tld"
+                aria-invalid={errors.email ? true : undefined}
+                aria-describedby={errors.email ? 'email-error' : undefined}
+                required
+                className={INPUT_CLASS}
+              />
+            </Field>
+
+            <Field id="password" label="Mot de passe" hint={mode === 'signup' ? '10 caractères minimum' : undefined} error={errors.password}>
               <div className="relative">
                 <Input
+                  ref={passwordRef}
                   id="password"
+                  name="password"
                   type={reveal ? 'text' : 'password'}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  value={values.password}
+                  onChange={(event) => update('password', event.target.value)}
                   autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                  placeholder={mode === 'signin' ? 'Votre mot de passe' : 'Au moins 10 caractères'}
-                  className="h-11 pe-10 sm:h-9"
+                  aria-invalid={errors.password ? true : undefined}
+                  aria-describedby={passwordDescribedBy}
+                  required
+                  className={`${INPUT_CLASS} pe-11`}
                 />
                 <button
                   type="button"
                   onClick={() => setReveal((value) => !value)}
                   aria-label={reveal ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                  className="absolute inset-y-0 right-0 grid w-10 place-items-center text-muted-foreground hover:text-foreground"
+                  aria-pressed={reveal}
+                  className="absolute end-1 top-1 grid size-8 place-items-center rounded-md text-muted-foreground transition-colors duration-150 hover:text-foreground"
                 >
                   {reveal ? <EyeOff aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
                 </button>
               </div>
-            </div>
+            </Field>
+
             {mode === 'signup' && (
-              <div className="grid gap-2">
-                <Label htmlFor="confirm" className="font-mono text-tiny tracking-caps uppercase">Confirmer le mot de passe</Label>
-                <Input id="confirm" type={reveal ? 'text' : 'password'} value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" className="h-11 sm:h-9" />
-              </div>
+              <Field id="confirm" label="Confirmer le mot de passe" error={errors.confirm}>
+                <Input
+                  ref={confirmRef}
+                  id="confirm"
+                  name="confirm"
+                  type={reveal ? 'text' : 'password'}
+                  value={values.confirm}
+                  onChange={(event) => update('confirm', event.target.value)}
+                  autoComplete="new-password"
+                  aria-invalid={errors.confirm ? true : undefined}
+                  aria-describedby={errors.confirm ? 'confirm-error' : undefined}
+                  required
+                  className={INPUT_CLASS}
+                />
+              </Field>
             )}
 
             {problem && (
               <p
                 role="alert"
-                className={cn(
-                  'rounded-md border px-3 py-2 text-xs leading-5',
-                  problem.tone === 'error' ? 'border-destructive/25 bg-destructive/8 text-destructive' : 'border-info/25 bg-info/8 text-info',
-                )}
+                className="flex items-start gap-2 rounded-lg border border-destructive/25 bg-destructive/8 px-3 py-2 text-small leading-5 text-destructive"
               >
-                {problem.message}
+                <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+                <span>{problem}</span>
               </p>
             )}
 
-            <Button type="submit" size="lg" loading={busy} className="mt-2 h-12 w-full sm:h-10">
+            <Button type="submit" size="lg" loading={busy} className="mt-1 w-full rounded-md">
               {mode === 'signin' ? 'Se connecter' : 'Créer mon compte'}
-              {!busy && <ArrowRight aria-hidden />}
             </Button>
           </form>
 
-          <p className="mt-5 flex items-start gap-2 text-meta leading-5 text-muted-foreground">
-            <LockKeyhole aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-            Session chiffrée par cookie HttpOnly. Les mots de passe sont hachés, jamais stockés en clair.
-          </p>
+          <button
+            type="button"
+            onClick={switchMode}
+            aria-label={mode === 'signin' ? 'Pas encore de compte ? Créer un compte' : 'Déjà un compte ? Se connecter'}
+            className="group mx-auto mt-5 flex h-6 w-fit items-center gap-1 text-small transition-colors duration-150"
+          >
+            <span className="text-muted-foreground">{mode === 'signin' ? 'Pas encore de compte ?' : 'Déjà un compte ?'}</span>
+            <span className="font-medium text-foreground underline decoration-border underline-offset-4 transition-colors duration-150 group-hover:text-brand group-hover:decoration-brand">
+              {mode === 'signin' ? 'Créer un compte' : 'Se connecter'}
+            </span>
+          </button>
 
-          <div className="mt-8 border-t border-border pt-5">
-            <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-              <ArrowLeft aria-hidden className="size-3.5" />
-              Retour à l’accueil
-            </Link>
-          </div>
+          <p className="mt-3 flex items-start justify-center gap-2 text-micro leading-5 text-muted-foreground">
+            <LockKeyhole aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+            <span className="text-balance">Session chiffrée. Les mots de passe ne sont jamais stockés en clair.</span>
+          </p>
         </div>
       </main>
+
+      <footer className="relative hidden h-12 items-center justify-between border-t border-border px-5 text-xs text-muted-foreground sm:flex sm:px-6">
+        <span>SOCIA · Accès analyste</span>
+        <span>Le SIEM reste votre terrain</span>
+      </footer>
     </div>
   )
 }

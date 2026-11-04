@@ -2,15 +2,17 @@
 
 **Live: https://socia.devalade.me**
 
+> The live URL currently serves the previous interface. The Signal Room rebuild is local until a deploy is approved.
+
 **L’analyste garde la main. L’IA apporte la clarté.**
 
 SOCIA est une application web de triage et d’investigation pour les alertes SOC issues d’Elastic Security et de Security Onion. Elle structure le raisonnement de l’analyste, conserve chaque preuve et produit un rapport justifié.
 
 SOCIA ne se connecte ni à Kibana ni à Elasticsearch et n’exécute aucune requête. L’analyste lance ses recherches dans son SIEM, importe les résultats JSON, et SOCIA les réinterprète avec le contexte complet de l’investigation.
 
-| L’édition | Le briefing |
+| Le produit | Le briefing |
 | --- | --- |
-| <img src="docs/shots/landing-desktop.png" alt="Page d’accueil éditoriale de SOCIA" /> | <img src="docs/shots/dashboard-desktop.png" alt="Tableau de bord de posture SOC" /> |
+| <img src="docs/shots/landing-desktop.png" alt="Page d’accueil SOCIA" /> | <img src="docs/shots/dashboard-desktop.png" alt="Tableau de bord de posture SOC" /> |
 
 | Le dossier | Le rapport |
 | --- | --- |

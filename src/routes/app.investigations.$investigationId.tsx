@@ -24,10 +24,12 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { EmptyState } from '@/components/patterns/empty-state'
+import { SectionCard } from '@/components/patterns/section-card'
 import { PageSkeleton } from '@/components/patterns/route-states'
 import { RelativeTime } from '@/components/patterns/relative-time'
 import { SeverityBadge, InvestigationStatusBadge, VerdictBadge } from '@/components/patterns/badges'
 import { CopyButton } from '@/components/patterns/copy-button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AnalysisView } from '@/components/investigation/analysis-view'
 import { TimelineView } from '@/components/investigation/timeline-view'
 import { HypothesesView } from '@/components/investigation/hypotheses-view'
@@ -38,7 +40,6 @@ import { dateTime } from '@/lib/dates'
 import { runAnalysisFn } from '@/server/fns/analysis'
 import { archiveInvestigationFn, getInvestigationFn, reopenInvestigationFn } from '@/server/fns/investigations'
 import { generateReportFn } from '@/server/fns/reports'
-import { cn } from '@/lib/utils'
 
 const search = z.object({
   tab: z.enum(['synthese', 'chronologie', 'hypotheses', 'requetes', 'journal']).optional(),
@@ -159,76 +160,37 @@ function InvestigationWorkspace() {
     void navigate({ to: '/app/investigations/$investigationId', params: { investigationId: investigation.id }, search: { tab: next }, replace: true })
   }
 
-  return (
-    <div className="grid gap-10">
-      <div className="flex flex-col gap-5 border-b border-border pb-8">
-        <Link to="/app/investigations" className="inline-flex w-fit items-center gap-1.5 text-meta text-muted-foreground hover:text-foreground">
-          <ArrowLeft aria-hidden className="size-3.5" />
-          Toutes les investigations
-        </Link>
-
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="min-w-0">
-            <div className="mb-3 font-mono text-tiny tracking-label text-muted-foreground uppercase">Dossier / {investigation.id} · ouvert le {dateTime(investigation.createdAt)} · par {detail.ownerName}</div>
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <SeverityBadge severity={detail.summary.severity} />
-              <InvestigationStatusBadge status={investigation.status} />
-              {investigation.verdict && <VerdictBadge verdict={investigation.verdict} />}
-              {detail.securityFlags.length > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-warning/25 bg-warning/8 px-2 py-0.5 text-micro text-warning">
-                  <ShieldAlert aria-hidden className="size-3" />
-                  Contenu non fiable signalé
-                </span>
-              )}
-            </div>
-            <div className="flex items-start gap-2">
-              <h1 className="max-w-4xl font-display text-4xl leading-poster tracking-poster sm:text-5xl">{investigation.title}</h1>
-              {canEdit && (
-                <Button variant="ghost" size="icon-sm" onClick={() => setEditOpen(true)} aria-label="Modifier l’investigation" className="mt-0.5 shrink-0">
-                  <Pencil aria-hidden />
-                </Button>
-              )}
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-tiny tracking-caps text-muted-foreground uppercase">
-              {detail.summary.host && <span>Hôte : {detail.summary.host}</span>}
-              {detail.summary.user && <span>Utilisateur : {detail.summary.user}</span>}
-              {detail.summary.process && <span>Processus : {detail.summary.process}</span>}
-              <span>Ouverte le {dateTime(investigation.createdAt)}</span>
-            </div>
-          </div>
-
-          <div className="flex shrink-0 flex-wrap items-center gap-2 max-sm:[&_[data-slot=button]]:h-11 max-sm:[&_[data-slot=button]]:px-5">
+  const actions = (
+    <>
             {!concluded && canEdit && (
-              <Button size="sm" variant="outline" onClick={() => void analyze()} loading={analyzing} disabled={analyzing}>
+              <Button variant="outline" onClick={() => void analyze()} loading={analyzing} disabled={analyzing}>
                 <RefreshCw aria-hidden />
                 {hasAnalysis ? 'Relancer l’analyse' : 'Lancer l’analyse'}
               </Button>
             )}
             {!concluded && canEdit && (
-              <Button size="sm" onClick={() => setConclusionOpen(true)}>
+              <Button onClick={() => setConclusionOpen(true)}>
                 <CheckCircle2 aria-hidden />
                 Clôturer
               </Button>
             )}
             {concluded && (
-              <Button size="sm" variant="outline" onClick={() => void generate()} loading={generatingReport} disabled={generatingReport}>
+              <Button variant="outline" onClick={() => void generate()} loading={generatingReport} disabled={generatingReport}>
                 <FileText aria-hidden />
-                {reportVersion ? 'Nouvelle version du rapport' : 'Générer le rapport'}
+                {reportVersion ? 'Nouvelle version' : 'Générer le rapport'}
               </Button>
             )}
             {reportVersion && (
-              <Button asChild size="sm">
+              <Button asChild variant="outline">
                 <Link to="/app/investigations/$investigationId/report" params={{ investigationId: investigation.id }} search={{ version: reportVersion }}>
-                  <span className="inline-flex items-center gap-2">
-                    <FileText aria-hidden />
-                    Voir le rapport v{reportVersion}
-                  </span>
+                  <FileText aria-hidden />
+                  Voir le rapport v{reportVersion}
                 </Link>
               </Button>
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="icon-sm" variant="ghost" aria-label="Plus d’actions">
+                <Button size="icon" variant="ghost" aria-label="Plus d’actions">
                   <MoreHorizontal aria-hidden />
                 </Button>
               </DropdownMenuTrigger>
@@ -258,188 +220,222 @@ function InvestigationWorkspace() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
+    </>
+  )
+
+  return (
+    <div className="grid gap-5">
+      <section className="grid gap-4 rounded-xl border border-border bg-card p-5 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link to="/app/investigations" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+            <ArrowLeft aria-hidden className="size-3.5" />
+            Dossiers
+          </Link>
+          <div className="hidden flex-wrap items-center gap-2 lg:flex">{actions}</div>
         </div>
 
-        {detail.securityFlags.length > 0 && (
-          <div className="flex items-start gap-2 border-l-2 border-warning py-2 pl-4 text-meta leading-5 text-warning">
-            <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
-            <span>
-              L’alerte importée contient des formulations qui imitent des instructions. SOCIA les a traitées comme des données non fiables. Aucune instruction issue du document n’a été suivie.
+        <div className="flex flex-wrap items-center gap-2">
+          <SeverityBadge severity={detail.summary.severity} />
+          <InvestigationStatusBadge status={investigation.status} />
+          {investigation.verdict && <VerdictBadge verdict={investigation.verdict} />}
+          {detail.securityFlags.length > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-sm bg-warning/12 px-2 py-1 text-xs text-warning">
+              <ShieldAlert aria-hidden className="size-3.5" />
+              Contenu non fiable signalé
             </span>
-          </div>
-        )}
+          )}
+        </div>
 
-        {analysisError && (
-          <div className="flex flex-wrap items-center gap-3 border-l-2 border-destructive py-2 pl-4 text-meta leading-5 text-destructive">
-            <AlertTriangle aria-hidden className="size-4 shrink-0" />
-            <span className="min-w-0 flex-1">{analysisError}</span>
-            {canEdit && <Button size="xs" variant="outline" onClick={() => void analyze()} loading={analyzing}>Réessayer</Button>}
-          </div>
-        )}
-      </div>
+        <div className="flex items-start gap-2">
+          <h1 className="min-w-0 text-2xl leading-8 font-semibold tracking-title text-foreground">{investigation.title}</h1>
+          {canEdit && (
+            <Button variant="ghost" size="icon-sm" onClick={() => setEditOpen(true)} aria-label="Modifier l’investigation" className="shrink-0">
+              <Pencil aria-hidden />
+            </Button>
+          )}
+        </div>
 
-      <div className="grid gap-10 layout-workspace">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+          {detail.summary.host && <span>Hôte : {detail.summary.host}</span>}
+          {detail.summary.user && <span>Utilisateur : {detail.summary.user}</span>}
+          {detail.summary.process && <span>Processus : {detail.summary.process}</span>}
+          <span>Ouverte le {dateTime(investigation.createdAt)}</span>
+          <span className="font-mono">{investigation.id}</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 lg:hidden max-sm:[&_[data-slot=button]]:h-11">
+          {actions}
+        </div>
+      </section>
+
+      {detail.securityFlags.length > 0 && (
+        <div className="flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/8 p-3 text-xs leading-5 text-warning">
+          <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+          <span>
+            L’alerte importée contient des formulations qui imitent des instructions. SOCIA les a traitées comme des données non fiables. Aucune instruction issue du document n’a été suivie.
+          </span>
+        </div>
+      )}
+
+      {analysisError && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/25 bg-destructive/8 p-3 text-xs leading-5 text-destructive">
+          <AlertTriangle aria-hidden className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1">{analysisError}</span>
+          {canEdit && <Button size="sm" variant="outline" onClick={() => void analyze()} loading={analyzing}>Réessayer</Button>}
+        </div>
+      )}
+
+      <div className="grid gap-5 layout-workspace">
         <div className="min-w-0">
-          <div className="scroll-thin mb-8 flex items-center overflow-x-auto border-b border-border">
-            {TABS.map((item, index) => {
-              const count = item.id === 'requetes' ? detail.queries.length : item.id === 'hypotheses' ? detail.hypotheses.length : item.id === 'chronologie' ? detail.timeline.length : null
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => changeTab(item.id)}
-                  className={cn(
-                    'relative flex h-11 shrink-0 items-center gap-2 px-4 font-mono text-tiny tracking-caps uppercase text-muted-foreground transition-colors hover:text-foreground',
-                    tab === item.id && 'text-foreground after:absolute after:inset-x-4 after:bottom-0 after:h-px after:bg-brand',
-                  )}
-                >
-                  <span className={tab === item.id ? 'text-brand' : 'text-muted-foreground/50'}>{String(index + 1).padStart(2, '0')}</span>
-                  {item.label}
-                  {count !== null && count > 0 && <span className="font-mono text-tiny text-muted-foreground">{count}</span>}
-                </button>
-              )
-            })}
-          </div>
+          <Tabs value={tab} onValueChange={(value) => changeTab(value as TabId)}>
+            <TabsList className="h-9 w-full justify-start overflow-x-auto p-1">
+              {TABS.map((item) => {
+                const count = item.id === 'requetes' ? detail.queries.length : item.id === 'hypotheses' ? detail.hypotheses.length : item.id === 'chronologie' ? detail.timeline.length : null
+                return (
+                  <TabsTrigger key={item.id} value={item.id} className="shrink-0 gap-1.5 px-3 text-xs">
+                    <item.icon aria-hidden className="size-3.5" />
+                    {item.label}
+                    {count !== null && count > 0 && <span className="rounded-full bg-accent px-1.5 text-tiny text-muted-foreground num">{count}</span>}
+                  </TabsTrigger>
+                )
+              })}
+            </TabsList>
+          </Tabs>
 
           {analyzing && (
-            <div className="mb-6 flex items-start gap-3 border-l-2 border-brand py-2 pl-4">
-              <span className="mt-0.5 text-brand">
-                <Sparkles aria-hidden className="size-4 animate-pulse" />
-              </span>
+            <div className="mt-5 flex items-start gap-3 rounded-lg border border-brand/25 bg-brand/5 p-4">
+              <Sparkles aria-hidden className="mt-0.5 size-4 shrink-0 animate-pulse text-brand" />
               <div>
-                <div className="text-copy font-medium text-foreground">Analyse en cours</div>
-                <p className="mt-0.5 text-meta leading-5 text-muted-foreground">
+                <div className="text-sm font-medium text-foreground">Analyse en cours</div>
+                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
                   Le modèle lit l’alerte, les résultats importés et l’historique. L’investigation restera enregistrée si l’appel échoue.
                 </p>
               </div>
             </div>
           )}
 
-          {tab === 'synthese' && (
-            <>
-              {!hasAnalysis && !analyzing && (
-                <EmptyState
-                  icon={<Sparkles aria-hidden />}
-                  title="Aucune analyse pour le moment"
-                  description={
-                    canEdit
-                      ? 'L’analyse initiale expliquera la règle, reconstruira l’événement et séparera les faits, déductions, hypothèses et informations manquantes.'
-                      : 'Aucune analyse n’a encore été lancée. Un analyste doit lancer l’analyse initiale.'
-                  }
-                  action={
-                    canEdit ? (
-                      <Button onClick={() => void analyze()} loading={analyzing}>
-                        <Play aria-hidden />
-                        Lancer l’analyse initiale
-                      </Button>
-                    ) : undefined
-                  }
-                />
-              )}
-              {hasAnalysis && detail.analysis && (
-                <div className="grid gap-10">
-                  {concluded && investigation.verdict && (
-                    <section className="border-t-2 border-brand pt-4">
-                      <div className="font-mono text-tiny tracking-label text-brand uppercase">Verdict de l’analyste</div>
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <VerdictBadge verdict={investigation.verdict} />
-                        <span className="font-mono text-tiny tracking-caps text-muted-foreground uppercase">confiance {investigation.confidence === null ? 'n/d' : `${investigation.confidence}%`}</span>
-                        <span className="ms-auto font-mono text-tiny tracking-caps text-muted-foreground uppercase">Clôturée le {dateTime(investigation.closedAt)}</span>
-                      </div>
-                      <p className="mt-3 max-w-reading whitespace-pre-wrap text-meta leading-6 text-subtle">{investigation.conclusionJustification || 'Justification non renseignée.'}</p>
-                    </section>
-                  )}
-                  <AnalysisView analysis={detail.analysis} />
-                </div>
-              )}
-            </>
-          )}
+          <div className="mt-5">
+            {tab === 'synthese' && (
+              <>
+                {!hasAnalysis && !analyzing && (
+                  <EmptyState
+                    icon={<Sparkles aria-hidden />}
+                    title="Aucune analyse pour le moment"
+                    description={
+                      canEdit
+                        ? 'L’analyse initiale expliquera la règle, reconstruira l’événement et séparera les faits, déductions, hypothèses et informations manquantes.'
+                        : 'Aucune analyse n’a encore été lancée. Un analyste doit lancer l’analyse initiale.'
+                    }
+                    action={
+                      canEdit ? (
+                        <Button onClick={() => void analyze()} loading={analyzing}>
+                          <Play aria-hidden />
+                          Lancer l’analyse initiale
+                        </Button>
+                      ) : undefined
+                    }
+                  />
+                )}
+                {hasAnalysis && detail.analysis && (
+                  <div className="grid gap-5">
+                    {concluded && investigation.verdict && (
+                      <SectionCard title="Verdict de l’analyste" description={`Confiance ${investigation.confidence === null ? 'n/d' : `${investigation.confidence}%`}`} action={<VerdictBadge verdict={investigation.verdict} />}>
+                        <p className="whitespace-pre-wrap text-sm leading-6 text-subtle">{investigation.conclusionJustification || 'Justification non renseignée.'}</p>
+                        <p className="mt-3 text-xs text-muted-foreground">Clôturée le {dateTime(investigation.closedAt)}</p>
+                      </SectionCard>
+                    )}
+                    <AnalysisView analysis={detail.analysis} />
+                  </div>
+                )}
+              </>
+            )}
 
-          {tab === 'chronologie' && <TimelineView events={detail.timeline} />}
-          {tab === 'hypotheses' && <HypothesesView hypotheses={detail.hypotheses} investigationId={investigation.id} canEdit={canEdit} />}
-          {tab === 'requetes' && (
-            <div className="grid gap-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-meta text-muted-foreground">
-                  {detail.queries.length === 0
-                    ? 'Aucune requête proposée.'
-                    : `${detail.queries.length} requête${detail.queries.length > 1 ? 's' : ''} · ${executed} exécutée${executed > 1 ? 's' : ''} · ${proposed} en attente`}
+            {tab === 'chronologie' && <TimelineView events={detail.timeline} />}
+            {tab === 'hypotheses' && <HypothesesView hypotheses={detail.hypotheses} investigationId={investigation.id} canEdit={canEdit} />}
+            {tab === 'requetes' && (
+              <div className="grid gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-xs text-muted-foreground">
+                    {detail.queries.length === 0
+                      ? 'Aucune requête proposée.'
+                      : `${detail.queries.length} requête${detail.queries.length > 1 ? 's' : ''} · ${executed} exécutée${executed > 1 ? 's' : ''} · ${proposed} en attente`}
+                  </div>
+                  {canEdit && (
+                    <Button size="sm" variant="outline" onClick={() => setManualQueryOpen(true)}>
+                      <Plus aria-hidden />
+                      Ajouter une requête
+                    </Button>
+                  )}
                 </div>
-                {canEdit && (
-                  <Button size="sm" variant="outline" onClick={() => setManualQueryOpen(true)}>
-                    <Plus aria-hidden />
-                    Ajouter une requête
-                  </Button>
+                {orderedQueries.length === 0 ? (
+                  <EmptyState
+                    icon={<GitBranch aria-hidden />}
+                    title="Aucune requête KQL"
+                    description="L’analyse propose des questions et des requêtes en lecture seule. Vous les exécutez dans votre SIEM, puis vous importez les résultats."
+                  />
+                ) : (
+                  <div className="grid gap-4">
+                    {orderedQueries.map((query) => (
+                      <QueryCard key={query.id} query={query} investigationId={investigation.id} canEdit={canEdit} />
+                    ))}
+                  </div>
+                )}
+                {executed > 0 && canEdit && !concluded && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand/25 bg-brand/5 p-4">
+                    <div className="text-sm leading-6 text-muted-foreground">
+                      <span className="font-medium text-foreground">Des résultats ont été importés.</span> Relancez l’analyse pour réinterpréter les preuves et mettre à jour les hypothèses.
+                    </div>
+                    <Button size="sm" onClick={() => void analyze()} loading={analyzing}>
+                      <RefreshCw aria-hidden />
+                      Réanalyser
+                    </Button>
+                  </div>
                 )}
               </div>
-              {orderedQueries.length === 0 ? (
-                <EmptyState
-                  icon={<GitBranch aria-hidden />}
-                  title="Aucune requête KQL"
-                  description="L’analyse propose des questions et des requêtes en lecture seule. Vous les exécutez dans votre SIEM, puis vous importez les résultats."
-                />
-              ) : (
-                <div className="grid gap-4">
-                  {orderedQueries.map((query) => (
-                    <QueryCard key={query.id} query={query} investigationId={investigation.id} canEdit={canEdit} />
-                  ))}
-                </div>
-              )}
-              {executed > 0 && canEdit && !concluded && (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 p-4">
-                  <div className="text-small leading-5 text-muted-foreground">
-                    <span className="font-medium text-foreground">Des résultats ont été importés.</span> Relancez l’analyse pour réinterpréter les preuves et mettre à jour les hypothèses.
-                  </div>
-                  <Button size="sm" onClick={() => void analyze()} loading={analyzing}>
-                    <RefreshCw aria-hidden />
-                    Réanalyser
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-          {tab === 'journal' && <JournalView detail={detail} canComment={viewer.role !== 'viewer'} />}
+            )}
+            {tab === 'journal' && <JournalView detail={detail} canComment={viewer.role !== 'viewer'} />}
+          </div>
         </div>
 
-        <aside className="grid content-start gap-8 border-t border-border pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
-          <section>
-            <div className="font-mono text-tiny tracking-label text-muted-foreground uppercase">Prochaine étape</div>
-            <div className="mt-3">
-              <NextAction
-                hasAnalysis={hasAnalysis}
-                proposed={proposed}
-                executed={executed}
-                concluded={concluded}
-                reportVersion={reportVersion}
-                canEdit={canEdit}
-                onAnalyze={() => void analyze()}
-                onGenerate={() => void generate()}
-                onOpenQueries={() => changeTab('requetes')}
-              />
-            </div>
-          </section>
+        <aside className="grid content-start gap-5">
+          <SectionCard title="Prochaine étape">
+            <NextAction
+              hasAnalysis={hasAnalysis}
+              proposed={proposed}
+              executed={executed}
+              concluded={concluded}
+              reportVersion={reportVersion}
+              canEdit={canEdit}
+              onAnalyze={() => void analyze()}
+              onGenerate={() => void generate()}
+              onOpenQueries={() => changeTab('requetes')}
+            />
+          </SectionCard>
 
-          <section className="border-t border-border pt-4">
-            <div className="font-mono text-tiny tracking-label text-muted-foreground uppercase">Modèle et traçabilité</div>
-            <div className="mt-3 grid gap-2 font-mono text-tiny uppercase">
+          <SectionCard title="Traçabilité" description="Modèle et propriétaire">
+            <dl className="grid gap-3 text-xs">
               <div>
-                <div className="text-muted-foreground">Modèle</div>
-                <div className="mt-1 break-all text-meta text-subtle normal-case">{investigation.modelId}</div>
-                <div className="mt-0.5 text-tiny text-muted-foreground">{detail.analysisRun?.providerId ?? investigation.providerId}</div>
+                <dt className="text-muted-foreground">Modèle</dt>
+                <dd className="mt-1 break-all font-mono text-xs text-subtle">{investigation.modelId}</dd>
+                <dd className="mt-0.5 text-tiny text-muted-foreground">{detail.analysisRun?.providerId ?? investigation.providerId}</dd>
               </div>
-              <div className="border-t border-border/70 pt-2 text-muted-foreground">Ouverte le {dateTime(investigation.createdAt)}</div>
-              <div className="text-muted-foreground">Dernière activité <RelativeTime value={investigation.lastActivityAt} /></div>
-              <div className="text-muted-foreground">Propriétaire : {detail.ownerName}</div>
-              <div className="flex items-center gap-2 border-t border-border/70 pt-2">
-                <span className="min-w-0 flex-1 truncate text-tiny text-muted-foreground">{investigation.id}</span>
+              <div className="ms-0.5 grid gap-1 border-t border-border pt-3">
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Ouverte le</dt><dd className="text-right text-subtle">{dateTime(investigation.createdAt)}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Dernière activité</dt><dd className="text-right text-subtle"><RelativeTime value={investigation.lastActivityAt} /></dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Propriétaire</dt><dd className="text-right text-subtle">{detail.ownerName}</dd></div>
+              </div>
+              <div className="flex items-center gap-2 border-t border-border pt-3">
+                <span className="min-w-0 flex-1 truncate font-mono text-tiny text-muted-foreground">{investigation.id}</span>
                 <CopyButton value={investigation.id} label="" copiedLabel="" size="xs" />
               </div>
-            </div>
-          </section>
+            </dl>
+          </SectionCard>
 
-          <div className="border-l-2 border-brand pl-3 text-meta leading-5 text-muted-foreground">
-            <div className="font-mono text-tiny tracking-label text-brand uppercase">Périmètre de confiance</div>
+          <div className="rounded-xl border border-border bg-surface-1 p-5 text-xs leading-5 text-muted-foreground">
+            <div className="flex items-center gap-2 text-label font-medium text-foreground">
+              <ShieldAlert aria-hidden className="size-4 text-brand" />
+              Périmètre de confiance
+            </div>
             <p className="mt-2">L’alerte, les résultats et les commentaires sont des données. Les consignes système de SOCIA sont séparées et ne peuvent pas être remplacées par le contenu importé.</p>
           </div>
         </aside>
@@ -451,7 +447,6 @@ function InvestigationWorkspace() {
     </div>
   )
 }
-
 function NextAction({
   hasAnalysis,
   proposed,
@@ -476,12 +471,12 @@ function NextAction({
   if (concluded) {
     return (
       <div className="grid gap-3">
-        <div className="flex items-start gap-2 text-small leading-5 text-muted-foreground">
+        <div className="flex items-start gap-2 text-sm leading-6 text-muted-foreground">
           <CheckCircle2 aria-hidden className="mt-0.5 size-4 shrink-0 text-success" />
           Investigation clôturée. Le rapport reprend le verdict, la justification et les preuves importées.
         </div>
         {canEdit && (
-          <Button size="sm" variant="outline" onClick={onGenerate}>
+          <Button className="ms-0.5 w-fit" size="default" variant="outline" onClick={onGenerate}>
             <FileText aria-hidden />
             {reportVersion ? 'Nouvelle version' : 'Générer le rapport'}
           </Button>
@@ -492,31 +487,31 @@ function NextAction({
   if (!hasAnalysis) {
     return (
       <div className="grid gap-3">
-        <p className="text-small leading-5 text-muted-foreground">L’alerte est conservée. Il reste à produire l’analyse initiale.</p>
-        {canEdit && <Button size="sm" onClick={onAnalyze}><Play aria-hidden />Lancer l’analyse</Button>}
+        <p className="text-sm leading-6 text-muted-foreground">L’alerte est conservée. Il reste à produire l’analyse initiale.</p>
+        {canEdit && <Button className="ms-0.5 w-fit" size="default" onClick={onAnalyze}><Play aria-hidden />Lancer l’analyse</Button>}
       </div>
     )
   }
   if (proposed > 0) {
     return (
       <div className="grid gap-3">
-        <p className="text-small leading-5 text-muted-foreground">{proposed} requête{proposed > 1 ? 's' : ''} attend{proposed > 1 ? 'ent' : ''} d’être exécutée{proposed > 1 ? 's' : ''} dans votre SIEM, puis importée{proposed > 1 ? 's' : ''}.</p>
-        <Button size="sm" variant="outline" onClick={onOpenQueries}><GitBranch aria-hidden />Voir les requêtes</Button>
+        <p className="text-sm leading-6 text-muted-foreground">{proposed} requête{proposed > 1 ? 's' : ''} attend{proposed > 1 ? 'ent' : ''} d’être exécutée{proposed > 1 ? 's' : ''} dans votre SIEM, puis importée{proposed > 1 ? 's' : ''}.</p>
+        <Button className="ms-0.5 w-fit" size="default" variant="outline" onClick={onOpenQueries}><GitBranch aria-hidden />Voir les requêtes</Button>
       </div>
     )
   }
   if (executed > 0) {
     return (
       <div className="grid gap-3">
-        <p className="text-small leading-5 text-muted-foreground">Les résultats sont importés. Une réanalyse permet de les confronter aux hypothèses.</p>
-        {canEdit && <Button size="sm" onClick={onAnalyze}><RefreshCw aria-hidden />Réanalyser</Button>}
+        <p className="text-sm leading-6 text-muted-foreground">Les résultats sont importés. Une réanalyse permet de les confronter aux hypothèses.</p>
+        {canEdit && <Button className="ms-0.5 w-fit" size="default" onClick={onAnalyze}><RefreshCw aria-hidden />Réanalyser</Button>}
       </div>
     )
   }
   return (
     <div className="grid gap-3">
-      <p className="text-small leading-5 text-muted-foreground">Aucune preuve n’a encore été importée. Utilisez les requêtes proposées ou ajoutez la vôtre.</p>
-      <Button size="sm" variant="outline" onClick={onOpenQueries}><GitBranch aria-hidden />Ouvrir les requêtes</Button>
+      <p className="text-sm leading-6 text-muted-foreground">Aucune preuve n’a encore été importée. Utilisez les requêtes proposées ou ajoutez la vôtre.</p>
+      <Button className="ms-0.5 w-fit" size="default" variant="outline" onClick={onOpenQueries}><GitBranch aria-hidden />Ouvrir les requêtes</Button>
     </div>
   )
 }

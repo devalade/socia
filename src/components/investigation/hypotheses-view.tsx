@@ -3,6 +3,7 @@ import { useRouter } from '@tanstack/react-router'
 import { Lightbulb } from 'lucide-react'
 import { toast } from 'sonner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card } from '@/components/ui/card'
 import { StatusBadge } from '@/components/premium/status-badge'
 import { ConfidenceMeter } from '@/components/patterns/confidence-meter'
 import { EmptyState } from '@/components/patterns/empty-state'
@@ -55,42 +56,29 @@ export function HypothesesView({
   }
 
   return (
-    <div className="border-t-2 border-foreground pt-4">
+    <div className="grid gap-4">
       {hypotheses.map((hypothesis, index) => {
         const tone = hypothesis.status === 'supported' ? 'success' : hypothesis.status === 'refuted' ? 'danger' : hypothesis.status === 'inconclusive' ? 'neutral' : 'warning'
         return (
-          <article key={hypothesis.id} className="grid gap-6 border-b border-border py-6 md:grid-cols-4">
-            <div className="flex gap-3 md:col-span-3">
-              <span className="w-6 shrink-0 font-mono text-tiny text-hypothesis">{String(index + 1).padStart(2, '0')}</span>
-              <div className="min-w-0">
-                <h3 className="font-display text-2xl leading-tight tracking-app">{hypothesis.statement}</h3>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <StatusBadge tone={tone}>{HYPOTHESIS_STATUS_LABELS[hypothesis.status] ?? hypothesis.status}</StatusBadge>
-                  {hypothesis.analysisRunId && <span className="font-mono text-tiny tracking-caps text-muted-foreground uppercase">Issue d’une analyse IA</span>}
-                </div>
-                <div className="mt-4 grid gap-3 border-t border-border pt-3">
-                  <div>
-                    <div className="font-mono text-tiny tracking-caps text-muted-foreground uppercase">Raisonnement</div>
-                    <p className="mt-1 max-w-reading text-meta leading-6 text-subtle">{hypothesis.rationale || 'Non renseigné.'}</p>
-                  </div>
-                  <div>
-                    <div className="font-mono text-tiny tracking-caps text-muted-foreground uppercase">Preuves ou absence de preuves</div>
-                    <p className="mt-1 max-w-reading text-meta leading-6 text-subtle">{hypothesis.evidence || 'Non renseigné.'}</p>
+          <Card key={hypothesis.id} className="gap-4 p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-md bg-hypothesis/12 text-xs font-medium text-hypothesis num">{index + 1}</span>
+                <div className="min-w-0">
+                  <h3 className="text-base leading-6 font-semibold text-foreground">{hypothesis.statement}</h3>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <StatusBadge tone={tone}>{HYPOTHESIS_STATUS_LABELS[hypothesis.status] ?? hypothesis.status}</StatusBadge>
+                    {hypothesis.analysisRunId && <span className="text-xs text-muted-foreground">Issue d’une analyse IA</span>}
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="border-t border-border pt-4 md:col-span-1 md:border-l md:border-t-0 md:pl-6 md:pt-0">
-              <div className="mb-2 font-mono text-tiny tracking-caps text-muted-foreground uppercase">Confiance du modèle</div>
-              <ConfidenceMeter value={hypothesis.confidence} />
               {canEdit && (
                 <Select
                   value={hypothesis.status}
                   onValueChange={(value) => void change(hypothesis.id, value as 'open' | 'supported' | 'refuted' | 'inconclusive')}
                   disabled={busy === hypothesis.id}
                 >
-                  <SelectTrigger className="mt-4 h-9 w-full bg-transparent text-xs" aria-label="Statut de l’hypothèse">
+                  <SelectTrigger className="h-9 w-36 shrink-0" aria-label="Statut de l’hypothèse">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -101,9 +89,24 @@ export function HypothesesView({
                   </SelectContent>
                 </Select>
               )}
-              <p className="mt-3 font-mono text-tiny leading-4 tracking-caps text-muted-foreground uppercase">La confiance est une appréciation à réviser, pas une preuve.</p>
             </div>
-          </article>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <div className="text-xs text-muted-foreground">Raisonnement</div>
+                <p className="mt-1 text-sm leading-6 text-subtle">{hypothesis.rationale || 'Non renseigné.'}</p>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Preuves ou absence de preuves</div>
+                <p className="mt-1 text-sm leading-6 text-subtle">{hypothesis.evidence || 'Non renseigné.'}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-surface-1 p-3">
+                <div className="text-xs text-muted-foreground">Confiance du modèle</div>
+                <div className="mt-2"><ConfidenceMeter value={hypothesis.confidence} /></div>
+                <p className="mt-2 text-tiny leading-4 text-muted-foreground">Une appréciation à réviser, pas une preuve.</p>
+              </div>
+            </div>
+          </Card>
         )
       })}
     </div>
