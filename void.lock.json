@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "source": {
+    "name": "socia",
+    "main": "./src/server/entry.ts"
+  },
+  "resolved": {
+    "name": "socia",
+    "main": "./src/server/entry.ts",
+    "account_id": "6877e6620146f261af2770e906164be3",
+    "compatibility_date": "2026-02-24",
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "socia-db",
+        "database_id": "f042e138-6ede-4037-8126-c7827b76bd25",
+        "migrations_dir": "./db/migrations"
+      }
+    ],
+    "routes": [
+      {
+        "pattern": "socia.devalade.me",
+        "custom_domain": true
+      }
+    ]
+  },
+  "text": "// void:published-traffic:v1:eyJ3b3JrZXJzX2RldiI6ZmFsc2UsInByZXZpZXdfdXJscyI6ZmFsc2UsInJvdXRlcyI6W3sicGF0dGVybiI6InNvY2lhLmRldmFsYWRlLm1lIiwiY3VzdG9tX2RvbWFpbiI6dHJ1ZX1dfQ\n{\n  \"name\": \"socia\",\n  \"main\": \"./src/server/entry.ts\",\n  \"account_id\": \"6877e6620146f261af2770e906164be3\",\n  \"compatibility_date\": \"2026-02-24\",\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"socia-db\",\n      \"database_id\": \"f042e138-6ede-4037-8126-c7827b76bd25\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"routes\": [\n    {\n      \"pattern\": \"socia.devalade.me\",\n      \"custom_domain\": true\n    }\n  ]\n}\n"
+}
