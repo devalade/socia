@@ -128,7 +128,7 @@ function DashboardPage() {
             )}
           </SectionCard>
 
-          <SectionCard title="Fournisseurs" description="Modèles et endpoints">
+          <SectionCard title="Fournisseur" description="Modèle et endpoint">
             <ProviderChain data={data} />
           </SectionCard>
         </aside>
@@ -296,7 +296,7 @@ function RecentTable({ items }: { items: DashboardData['recent'] }) {
           <TableBody>
             {items.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="w-96 max-w-96 ps-5">
+                <TableCell className="w-80 max-w-80 ps-5">
                   <Link to="/app/investigations/$investigationId" params={{ investigationId: item.id }} className="block min-w-0 font-medium text-foreground hover:text-brand">
                     <span className="block truncate">{item.title}</span>
                     <span className="mt-0.5 block truncate text-xs text-muted-foreground">{item.ruleName ?? 'Règle sans nom'}</span>
@@ -336,7 +336,7 @@ function Signals({ data }: { data: DashboardData }) {
     { label: 'Analyses 30 jours', value: data.counts.analyses30d },
     { label: 'Échecs 30 jours', value: data.counts.failedAnalyses30d, warning: data.counts.failedAnalyses30d > 0 },
     { label: 'À surveiller', value: data.counts.watch },
-    { label: 'Modèles détectés', value: data.modelCount },
+    { label: 'Modèle actif', value: data.modelCount },
   ]
   return (
     <div>
@@ -350,7 +350,7 @@ function Signals({ data }: { data: DashboardData }) {
       </dl>
       <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
         <span className={cn('size-1.5 rounded-full', data.aiHealthy ? 'bg-success' : 'bg-warning')} />
-        {data.aiHealthy ? 'Fournisseur opérationnel' : 'Fournisseur à configurer'}
+        {data.aiHealthy ? 'Fournisseur opérationnel' : 'Fournisseur à configurer'} · {data.modelLabel}
       </div>
     </div>
   )
@@ -367,11 +367,11 @@ function ProviderChain({ data }: { data: DashboardData }) {
             <div className="min-w-0">
               <div className="text-label font-medium text-foreground">{provider.name}</div>
               <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                {provider.kind === 'workers-ai' ? 'Binding Cloudflare' : provider.baseUrl ?? 'Endpoint distant'}
+                {provider.kind === 'workers-ai' ? data.modelLabel : provider.baseUrl ?? 'Endpoint distant'}
               </div>
             </div>
             <StatusBadge tone={!provider.isActive ? 'neutral' : provider.lastError ? 'warning' : 'success'}>
-              {provider.isActive ? `${provider.modelCount} modèles` : 'Inactif'}
+              {provider.isActive ? 'Actif' : 'Inactif'}
             </StatusBadge>
           </div>
         ))

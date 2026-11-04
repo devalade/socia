@@ -28,8 +28,6 @@ export const createInvestigationFn = createServerFn({ method: 'POST' })
       ruleDefinition: z.string().max(120_000).optional(),
       observations: z.string().max(20_000).optional(),
       priorSearches: z.string().max(250_000).optional(),
-      providerId: z.string().min(1).max(80),
-      modelId: z.string().min(1).max(200),
     }),
   )
   .handler(async ({ data }) => createInvestigation(await requireActor(), data))

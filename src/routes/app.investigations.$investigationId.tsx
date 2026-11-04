@@ -416,7 +416,8 @@ function InvestigationWorkspace() {
             <dl className="grid gap-3 text-xs">
               <div>
                 <dt className="text-muted-foreground">Modèle</dt>
-                <dd className="mt-1 break-all font-mono text-xs text-subtle">{investigation.modelId}</dd>
+                {detail.modelLabel !== investigation.modelId && <dd className="mt-1 text-sm font-medium text-foreground">{detail.modelLabel}</dd>}
+                <dd className={detail.modelLabel !== investigation.modelId ? 'mt-0.5 break-all font-mono text-xs text-subtle' : 'mt-1 break-all font-mono text-xs text-subtle'}>{investigation.modelId}</dd>
                 <dd className="mt-0.5 text-tiny text-muted-foreground">{detail.analysisRun?.providerId ?? investigation.providerId}</dd>
               </div>
               <div className="ms-0.5 grid gap-1 border-t border-border pt-3">

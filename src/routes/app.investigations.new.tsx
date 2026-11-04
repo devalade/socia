@@ -19,11 +19,10 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PageHeader } from '@/components/patterns/page-header'
 import { SectionCard } from '@/components/patterns/section-card'
 import { SeverityBadge } from '@/components/patterns/badges'
-import { EmptyState } from '@/components/patterns/empty-state'
+import { StatusBadge } from '@/components/premium/status-badge'
 import { PageSkeleton } from '@/components/patterns/route-states'
 import { SAMPLE_ALERT } from '@/lib/sample-alert'
 import { parseAlertJson, SEVERITY_LABELS } from '@/lib/alert'
@@ -51,18 +50,9 @@ function NewInvestigationPage() {
   const [busy, setBusy] = useState<'draft' | 'analyze' | null>(null)
   const [dragging, setDragging] = useState(false)
 
-  const defaultModel = useMemo(() => {
-    const preferred = options.models.find((model) => model.modelId === options.defaultModelId)
-    return preferred ?? options.models.find((model) => model.isRecommended) ?? options.models[0]
-  }, [options.defaultModelId, options.models])
-  const [selection, setSelection] = useState(defaultModel ? `${defaultModel.providerId}::${defaultModel.modelId}` : '')
-
+  const model = options.model
   const parsed = useMemo(() => (alertJson.trim() ? parseAlertJson(alertJson) : null), [alertJson])
   const flags = useMemo(() => (alertJson.trim() ? scanForPromptInjection(alertJson) : []), [alertJson])
-  const selectedModel = useMemo(() => {
-    const [providerId, modelId] = selection.split('::')
-    return options.models.find((model) => model.providerId === providerId && model.modelId === modelId) ?? defaultModel
-  }, [defaultModel, options.models, selection])
 
   async function readFile(file: File | undefined) {
     if (!file) return
@@ -84,10 +74,6 @@ function NewInvestigationPage() {
       toast.error('Le JSON de l’alerte est invalide', { description: parsed && !parsed.ok ? parsed.error : 'Collez une alerte Elastic.' })
       return
     }
-    if (!selectedModel) {
-      toast.error('Aucun modèle IA disponible', { description: 'Un administrateur doit détecter les modèles dans Administration.' })
-      return
-    }
     setBusy(mode)
     try {
       const created = await createInvestigationFn({
@@ -97,8 +83,6 @@ function NewInvestigationPage() {
           ruleDefinition: ruleDefinition.trim() || undefined,
           observations: observations.trim() || undefined,
           priorSearches: priorSearches.trim() || undefined,
-          providerId: selectedModel.providerId,
-          modelId: selectedModel.modelId,
         },
       })
       toast.success('Investigation créée', { description: 'L’alerte originale est conservée intégralement.' })
@@ -114,22 +98,6 @@ function NewInvestigationPage() {
     }
   }
 
-  if (options.models.length === 0) {
-    return (
-      <div className="grid gap-6">
-        <PageHeader
-          title="Nouvelle investigation"
-          actions={<Button asChild variant="outline" size="sm"><Link to="/app/investigations"><ArrowLeft aria-hidden />Retour</Link></Button>}
-        />
-        <EmptyState
-          icon={<Sparkles aria-hidden />}
-          title="Aucun modèle IA n’est disponible"
-          description="Le fournisseur Workers AI n’a pas encore été détecté, ou tous les fournisseurs sont désactivés. Un administrateur peut lancer la détection depuis Administration > Modèles IA."
-          action={<Button asChild><Link to="/app/settings" search={{ tab: 'ia' }}>Ouvrir l’administration</Link></Button>}
-        />
-      </div>
-    )
-  }
 
   return (
     <div className="grid gap-6">
@@ -276,41 +244,17 @@ function NewInvestigationPage() {
 
         <aside className="grid content-start gap-5">
           <SectionCard title="Modèle d’analyse" description="Le modèle reçoit uniquement ce que vous fournissez.">
-            <div className="grid gap-3">
-              <Select value={selection} onValueChange={setSelection}>
-                <SelectTrigger className="h-10 w-full" aria-label="Choisir le modèle IA">
-                  <SelectValue placeholder="Choisir un modèle" />
-                </SelectTrigger>
-                <SelectContent position="popper" className="max-h-80">
-                  {groupModels(options.models).map(([providerName, models]) => (
-                    <SelectGroup key={providerName}>
-                      <SelectLabel>{providerName}</SelectLabel>
-                      {models.map((model) => (
-                        <SelectItem key={`${model.providerId}::${model.modelId}`} value={`${model.providerId}::${model.modelId}`}>
-                          <span className="flex w-full items-center gap-2">
-                            <span className="truncate">{model.label}</span>
-                            {model.isRecommended && <span className="shrink-0 rounded bg-brand/12 px-1.5 py-0.5 text-xs font-medium text-brand">Conseillé</span>}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedModel && (
-                <div className="rounded-lg border border-border bg-surface-1 p-3">
-                  <div className="flex items-center gap-2 text-meta font-medium text-subtle">
-                    <Sparkles aria-hidden className="size-3.5 text-brand" />
-                    {selectedModel.providerName}
-                  </div>
-                  <div className="mt-1.5 font-mono text-xs break-all text-muted-foreground">{selectedModel.modelId}</div>
-                  <div className="mt-2 flex items-center gap-1.5 text-xs text-success">
-                    <Check aria-hidden className="size-3" />
-                    Détecté et actif
-                  </div>
-                </div>
-              )}
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-1 p-4">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
+                <Sparkles aria-hidden className="size-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-foreground">{model.label}</div>
+                <div className="mt-0.5 break-all font-mono text-xs text-muted-foreground">{model.modelId}</div>
+              </div>
+              <StatusBadge tone="success">Actif</StatusBadge>
             </div>
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">Un seul modèle est utilisé pour toutes les analyses, afin de garder des résultats comparables.</p>
           </SectionCard>
 
           <SectionCard title="Ce que SOCIA fera" description="Un raisonnement structuré, pas une boîte noire.">
@@ -381,14 +325,4 @@ function NewInvestigationPage() {
       </div>
     </div>
   )
-}
-
-function groupModels(models: Awaited<ReturnType<typeof getModelOptionsFn>>['models']) {
-  const map = new Map<string, typeof models>()
-  for (const model of models) {
-    const list = map.get(model.providerName) ?? []
-    list.push(model)
-    map.set(model.providerName, list)
-  }
-  return Array.from(map.entries())
 }

@@ -9,7 +9,7 @@ import { audit } from '../audit'
 import { db } from '../db'
 import { AppError, invalid, safeProviderError } from '../errors'
 import type { Actor } from '../session'
-import { resolveModelForRun, runChatCompletion } from '../ai/providers'
+import { resolvePinnedModelForRun, runChatCompletion } from '../ai/providers'
 import { requireInvestigation } from './investigations'
 
 export type AnalysisResult = {
@@ -76,7 +76,13 @@ export async function runAnalysis(actor: Actor, investigationId: string): Promis
     })
   }
 
-  const model = await resolveModelForRun(investigation.providerId, investigation.modelId)
+  const model = await resolvePinnedModelForRun()
+  if (investigation.modelId !== model.modelId || investigation.providerId !== model.providerId) {
+    await db
+      .update(investigations)
+      .set({ modelId: model.modelId, providerId: model.providerId, updatedAt: new Date().toISOString() })
+      .where(eq(investigations.id, investigationId))
+  }
   const summary = JSON.parse(investigation.alertSummaryJson) as AlertSummary & { securityFlags?: string[] }
   const existingQueries = await db
     .select()

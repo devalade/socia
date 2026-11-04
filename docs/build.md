@@ -36,7 +36,6 @@ Sans cette connexion, `/health` reste vert mais les appels IA échouent et l’i
 | `APP_ENV` | `local`, `preview` ou `production` | `production` |
 | `BETTER_AUTH_URL` | URL publique de l’application | URL HTTPS |
 | `BETTER_AUTH_SECRET` | Secret de session Better Auth | `void secret put` |
-| `AI_DEFAULT_MODEL` | Modèle proposé par défaut | valeur du catalogue |
 | `AI_REQUEST_TIMEOUT_MS` | Timeout des appels IA | 90000 |
 | `AI_KEY_ENCRYPTION_KEY` | Clé de chiffrement des clés fournisseurs | `void secret put` |
 

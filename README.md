@@ -21,7 +21,7 @@ SOCIA ne se connecte ni à Kibana ni à Elasticsearch et n’exécute aucune req
 ## Ce que fait SOCIA
 
 - Importe une alerte Elastic JSON et conserve le document original.
-- Détecte automatiquement les modèles Workers AI et les fournisseurs compatibles OpenAI.
+- Utilise un modèle unique, Deepseek v4.1 flash, pour garder des analyses comparables.
 - Produit une analyse qui sépare faits observés, déductions, hypothèses et informations manquantes.
 - Propose des questions sans réponse et des requêtes KQL Kibana justifiées, en lecture seule.
 - Importe les résultats JSON de l’analyste, les résume et réinterprète les hypothèses.
@@ -49,7 +49,7 @@ SOCIA ne se connecte ni à Kibana ni à Elasticsearch et n’exécute aucune req
 | SDK et déploiement | Void |
 | Base | Cloudflare D1 + Drizzle |
 | Auth | Better Auth |
-| IA | Workers AI et tout endpoint compatible OpenAI |
+| IA | Workers AI, modèle unique Deepseek v4.1 flash |
 | UI | Tailwind v4, primitives shadcn et compositions premium mesurées |
 | Tests | Vitest, Playwright |
 

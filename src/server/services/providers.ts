@@ -9,7 +9,7 @@ import { refuse } from '../session'
 import { sealApiKey } from '../vault'
 import {
   detectModels,
-  listModels,
+  ensurePinnedModel,
   listProviders,
   testProviderModel,
   validateBaseUrl,
@@ -103,10 +103,10 @@ export async function testModel(actor: Actor, providerId: string, modelId: strin
 
 export async function adminProviderData(actor: Actor): Promise<{
   providers: Awaited<ReturnType<typeof listProviders>>
-  models: Awaited<ReturnType<typeof listModels>>
+  model: Awaited<ReturnType<typeof ensurePinnedModel>>
 }> {
   refuse(actor, 'provider.manage')
-  return { providers: await listProviders(), models: await listModels({ includeInactive: true }) }
+  return { providers: await listProviders(), model: await ensurePinnedModel() }
 }
 
 export async function modelHistory(): Promise<{ id: string; providerId: string; modelId: string; label: string; isActive: boolean }[]> {

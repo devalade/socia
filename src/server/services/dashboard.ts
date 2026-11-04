@@ -5,7 +5,7 @@ import { can } from '../../lib/roles'
 import { db } from '../db'
 import { forbidden } from '../errors'
 import type { Actor } from '../session'
-import { ensureModelsDetected, listProviders, listModels, type ProviderView } from '../ai/providers'
+import { ensurePinnedModel, listProviders, type ProviderView } from '../ai/providers'
 
 export type DashboardData = {
   generatedAt: string
@@ -44,6 +44,7 @@ export type DashboardData = {
   topRules: { name: string; count: number }[]
   providers: ProviderView[]
   modelCount: number
+  modelLabel: string
   teamCount: number
   aiHealthy: boolean
 }
@@ -54,7 +55,6 @@ function dayKey(date: Date): string {
 
 export async function getDashboard(actor: Actor): Promise<DashboardData> {
   if (!can(actor.role, 'investigation.view')) throw forbidden()
-  await ensureModelsDetected()
   const rows = await db.select().from(investigations).orderBy(desc(investigations.updatedAt)).limit(500)
   const runs = await db
     .select({
@@ -71,9 +71,9 @@ export async function getDashboard(actor: Actor): Promise<DashboardData> {
     .from(queries)
     .where(eq(queries.status, 'proposed'))
   const ownerIds = Array.from(new Set(rows.map((row) => row.ownerId)))
-  const [providers, models, team, owners] = await Promise.all([
+  const [providers, pinned, team, owners] = await Promise.all([
     listProviders(),
-    listModels(),
+    ensurePinnedModel(),
     db.select({ userId: profiles.userId, role: profiles.role }).from(profiles),
     ownerIds.length
       ? db.select({ id: user.id, name: user.name }).from(user).where(inArray(user.id, ownerIds))
@@ -165,7 +165,7 @@ export async function getDashboard(actor: Actor): Promise<DashboardData> {
       pendingQueries: pendingByInvestigation.get(row.id) ?? 0,
     }))
 
-  const aiHealthy = models.length > 0 && providers.some((provider) => provider.isActive && !provider.lastError)
+  const aiHealthy = Boolean(pinned) && providers.some((provider) => provider.isActive && !provider.lastError)
 
   return {
     generatedAt: new Date().toISOString(),
@@ -187,7 +187,8 @@ export async function getDashboard(actor: Actor): Promise<DashboardData> {
     queue,
     topRules,
     providers,
-    modelCount: models.length,
+    modelCount: pinned ? 1 : 0,
+    modelLabel: pinned.label,
     teamCount: team.length,
     aiHealthy,
   }
@@ -202,11 +203,9 @@ export type ShellData = {
 }
 
 export async function getShellData(actor: Actor): Promise<ShellData> {
-  await ensureModelsDetected()
   const rows = await db.select().from(investigations).orderBy(desc(investigations.updatedAt)).limit(80)
   const pending = await db.select({ id: queries.id }).from(queries).where(eq(queries.status, 'proposed'))
-  const providers = await listProviders()
-  const models = await listModels()
+  const [providers, pinned] = await Promise.all([listProviders(), ensurePinnedModel()])
   return {
     viewer: { userId: actor.userId, name: actor.name, email: actor.email, role: actor.role },
     recent: rows.slice(0, 5).map((row) => ({
@@ -217,6 +216,6 @@ export async function getShellData(actor: Actor): Promise<ShellData> {
     })),
     openCount: rows.filter((row) => ['draft', 'analyzing', 'in_progress'].includes(row.status)).length,
     pendingQueries: pending.length,
-    aiHealthy: models.length > 0 && providers.some((provider) => provider.isActive && !provider.lastError),
+    aiHealthy: Boolean(pinned) && providers.some((provider) => provider.isActive && !provider.lastError),
   }
 }

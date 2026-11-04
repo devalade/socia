@@ -3,35 +3,27 @@ import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import {
   Activity,
   CheckCircle2,
-  Cpu,
   Database,
   KeyRound,
   LockKeyhole,
-  Plus,
-  RefreshCw,
-  Server,
   ShieldCheck,
   Sparkles,
-  Trash2,
   Users,
   XCircle,
 } from 'lucide-react'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusBadge } from '@/components/premium/status-badge'
-import { Truncate } from '@/components/premium/truncate'
 import { PageHeader } from '@/components/patterns/page-header'
 import { SectionCard } from '@/components/patterns/section-card'
 import { PageSkeleton } from '@/components/patterns/route-states'
 import { EmptyState } from '@/components/patterns/empty-state'
-import { getAdminProvidersFn, createOpenAiProviderFn, deleteProviderFn, refreshModelsFn, setProviderActiveFn, testModelFn } from '@/server/fns/providers'
+import { getAdminProvidersFn, testModelFn } from '@/server/fns/providers'
 import { getTeamFn, updateMemberRoleFn } from '@/server/fns/team'
 import { getAuditFn } from '@/server/fns/audit'
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, ROLES, type Role } from '@/lib/roles'
@@ -63,7 +55,7 @@ export const Route = createFileRoute('/app/settings')({
 })
 
 const TABS = [
-  { id: 'ia', label: 'Modèles IA', icon: Sparkles },
+  { id: 'ia', label: 'Modèle IA', icon: Sparkles },
   { id: 'equipe', label: 'Équipe', icon: Users },
   { id: 'audit', label: 'Journal d’audit', icon: Activity },
   { id: 'securite', label: 'Sécurité', icon: ShieldCheck },
@@ -72,12 +64,12 @@ const TABS = [
 function SettingsPage() {
   const { providerData, team, audit } = Route.useLoaderData()
   const activeProviders = providerData.providers.filter((provider) => provider.isActive).length
-  const activeModels = providerData.models.filter((model) => model.isActive).length
+  const model = providerData.model
+  const provider = providerData.providers.find((item) => item.id === model.providerId)
+  const activeModels = 1
   const filters = Route.useSearch()
   const router = useRouter()
   const navigate = Route.useNavigate()
-  const [addOpen, setAddOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [auditTerm, setAuditTerm] = useState(filters.auditSearch ?? '')
   const tab = filters.tab ?? 'ia'
@@ -86,54 +78,13 @@ function SettingsPage() {
     void navigate({ search: (previous) => ({ ...previous, tab: next }) })
   }
 
-  async function refresh(providerId?: string) {
-    setBusy(`refresh-${providerId ?? 'all'}`)
+  async function testPinnedModel() {
+    setBusy('test')
     try {
-      await refreshModelsFn({ data: { providerId } })
-      toast.success('Détection terminée')
-      await router.invalidate()
-    } catch (error) {
-      toast.error('Détection impossible', { description: error instanceof Error ? error.message : 'Erreur inconnue.' })
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  async function toggleProvider(providerId: string, active: boolean) {
-    setBusy(`toggle-${providerId}`)
-    try {
-      await setProviderActiveFn({ data: { providerId, active } })
-      toast.success(active ? 'Fournisseur activé' : 'Fournisseur désactivé')
-      await router.invalidate()
-    } catch (error) {
-      toast.error('Mise à jour impossible', { description: error instanceof Error ? error.message : 'Erreur inconnue.' })
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  async function test(providerId: string, modelId: string) {
-    setBusy(`test-${providerId}-${modelId}`)
-    try {
-      const result = await testModelFn({ data: { providerId, modelId } })
+      const result = await testModelFn({ data: { providerId: model.providerId, modelId: model.modelId } })
       toast.success('Test réussi', { description: result.detail || 'Le modèle a répondu.' })
     } catch (error) {
       toast.error('Test échoué', { description: error instanceof Error ? error.message : 'Erreur inconnue.' })
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  async function removeProvider() {
-    if (!deleteTarget) return
-    setBusy('delete')
-    try {
-      await deleteProviderFn({ data: { providerId: deleteTarget } })
-      toast.success('Fournisseur supprimé')
-      setDeleteTarget(null)
-      await router.invalidate()
-    } catch (error) {
-      toast.error('Suppression impossible', { description: error instanceof Error ? error.message : 'Erreur inconnue.' })
     } finally {
       setBusy(null)
     }
@@ -157,7 +108,6 @@ function SettingsPage() {
       <PageHeader
         title="Administration"
         description="L’espace d’administration contrôle les fournisseurs d’IA, les rôles et le journal d’audit. Il est réservé aux administrateurs et chaque action y est enregistrée."
-        actions={<Button size="sm" variant="outline" onClick={() => void refresh()} loading={busy === 'refresh-all'}><RefreshCw aria-hidden />Détecter tous les modèles</Button>}
         meta={
           <>
             <span>{activeProviders} fournisseur{activeProviders > 1 ? 's' : ''} actif{activeProviders > 1 ? 's' : ''}</span>
@@ -180,103 +130,50 @@ function SettingsPage() {
 
       {tab === 'ia' && (
         <div className="grid min-w-0 grid-cols-1 gap-5">
-          <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
-            {providerData.providers.map((provider) => (
-              <div key={provider.id} className="min-w-0 rounded-xl border border-border bg-card p-5 shadow-card">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
-                      {provider.kind === 'workers-ai' ? <Cpu aria-hidden className="size-4" /> : <Server aria-hidden className="size-4" />}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="min-w-0 break-words text-sm font-medium">{provider.name}</h3>
-                        <StatusBadge tone={!provider.isActive ? 'neutral' : provider.lastError ? 'warning' : 'success'}>
-                          {!provider.isActive ? 'Inactif' : provider.lastError ? 'Erreur' : 'Actif'}
-                        </StatusBadge>
-                      </div>
-                      <p className="mt-1 break-words text-xs text-muted-foreground">
-                        {provider.kind === 'workers-ai' ? 'Binding Workers AI du compte Cloudflare' : provider.baseUrl}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {provider.modelCount} modèle{provider.modelCount > 1 ? 's' : ''} · {provider.lastCheckedAt ? <>vérifié <RelativeTime value={provider.lastCheckedAt} /></> : 'jamais vérifié'}
-                        {provider.keyHint && ` · clé ••••${provider.keyHint}`}
-                      </p>
-                    </div>
-                  </div>
-                  {provider.kind !== 'workers-ai' && (
-                    <div className="flex items-center gap-1">
-                      <Switch
-                        checked={provider.isActive}
-                        onCheckedChange={(value) => void toggleProvider(provider.id, value)}
-                        disabled={busy === `toggle-${provider.id}`}
-                        aria-label={provider.isActive ? 'Désactiver le fournisseur' : 'Activer le fournisseur'}
-                      />
-                      <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(provider.id)} aria-label="Supprimer le fournisseur">
-                        <Trash2 aria-hidden className="text-destructive" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                {provider.lastError && (
-                  <p className="mt-3 rounded-md border border-warning/20 bg-warning/5 px-3 py-2 text-xs leading-5 text-warning">{provider.lastError}</p>
-                )}
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => void refresh(provider.id)} loading={busy === `refresh-${provider.id}`} disabled={busy !== null}>
-                    <RefreshCw aria-hidden />
-                    Détecter les modèles
-                  </Button>
-                  {provider.kind === 'openai-compatible' && (
-                    <span className="text-xs text-muted-foreground">Clé chiffrée AES-GCM. Jamais renvoyée au navigateur.</span>
-                  )}
+          <SectionCard title="Modèle d’analyse" description="Le modèle utilisé pour chaque analyse. Il est fixé pour garder des résultats comparables.">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
+                  <Sparkles aria-hidden className="size-4" />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-foreground">{model.label}</div>
+                  <div className="mt-0.5 break-all font-mono text-xs text-muted-foreground">{model.modelId}</div>
                 </div>
               </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              className="flex min-h-36 min-w-0 items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-surface-1/30 px-4 text-center text-sm font-medium text-muted-foreground transition-colors hover:border-brand/40 hover:bg-brand/5 hover:text-foreground"
-            >
-              <Plus aria-hidden className="size-4" />
-              Ajouter un fournisseur compatible OpenAI
-            </button>
-          </div>
+              <StatusBadge tone="success">Actif</StatusBadge>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Button size="sm" variant="outline" onClick={() => void testPinnedModel()} loading={busy === 'test'} disabled={busy !== null}>
+                <Sparkles aria-hidden />
+                Tester le modèle
+              </Button>
+              <span className="text-xs text-muted-foreground">Un seul modèle pour toutes les analyses, sans catalogue à parcourir.</span>
+            </div>
+          </SectionCard>
 
-          <SectionCard title="Catalogue des modèles" description="Les modèles détectés sont sélectionnables lors de la création d’une investigation. Testez un modèle avant de l’utiliser en production." flush>
-            {providerData.models.length === 0 ? (
-              <EmptyState icon={<Sparkles aria-hidden />} title="Aucun modèle détecté" description="Lancez la détection sur le fournisseur Workers AI pour charger le catalogue." />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-table-x border-collapse text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-border/70 text-xs text-muted-foreground">
-                      <th className="px-5 py-2 font-medium">Modèle</th>
-                      <th className="px-3 py-2 font-medium">Fournisseur</th>
-                      <th className="px-3 py-2 font-medium">Recommandé</th>
-                      <th className="px-3 py-2 font-medium">Statut</th>
-                      <th className="px-5 py-2 text-right font-medium">Vérification</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60">
-                    {providerData.models.map((model) => (
-                      <tr key={model.id} className="hover:bg-accent/20">
-                        <td className="max-w-search px-5 py-3">
-                          <Truncate className="font-medium">{model.label}</Truncate>
-                          <Truncate className="mt-0.5 font-mono text-xs text-muted-foreground">{model.modelId}</Truncate>
-                        </td>
-                        <td className="px-3 py-3 text-muted-foreground">{model.providerName}</td>
-                        <td className="px-3 py-3">{model.isRecommended ? <StatusBadge tone="info">Conseillé</StatusBadge> : <span className="text-muted-foreground">n/d</span>}</td>
-                        <td className="px-3 py-3"><StatusBadge tone={model.isActive ? 'success' : 'neutral'}>{model.isActive ? 'Actif' : 'Inactif'}</StatusBadge></td>
-                        <td className="px-5 py-3 text-right">
-                          <Button size="sm" variant="outline" onClick={() => void test(model.providerId, model.modelId)} loading={busy === `test-${model.providerId}-${model.modelId}`} disabled={busy !== null}>
-                            Tester
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <SectionCard title="Fournisseur" description="Le binding Workers AI du compte Cloudflare fournit ce modèle.">
+            {provider ? (
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
+                  <Sparkles aria-hidden className="size-4" />
+                </span>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="min-w-0 break-words text-sm font-medium text-foreground">{provider.name}</h3>
+                    <StatusBadge tone={!provider.isActive ? 'neutral' : provider.lastError ? 'warning' : 'success'}>
+                      {!provider.isActive ? 'Inactif' : provider.lastError ? 'Erreur' : 'Actif'}
+                    </StatusBadge>
+                  </div>
+                  <p className="mt-1 break-words text-xs text-muted-foreground">Binding Workers AI du compte Cloudflare</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {provider.lastCheckedAt ? <>Vérifié <RelativeTime value={provider.lastCheckedAt} /></> : 'Non vérifié'}
+                  </p>
+                  {provider.lastError && <p className="mt-2 rounded-md border border-warning/20 bg-warning/5 px-3 py-2 text-xs leading-5 text-warning">{provider.lastError}</p>}
+                </div>
               </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Fournisseur introuvable.</p>
             )}
           </SectionCard>
         </div>
@@ -391,81 +288,8 @@ function SettingsPage() {
 
       {tab === 'securite' && <SecurityTab />}
 
-      <AddProviderDialog open={addOpen} onOpenChange={setAddOpen} />
-      <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Supprimer ce fournisseur ?</DialogTitle>
-            <DialogDescription>Les modèles associés seront retirés du catalogue. Les investigations existantes conservent le nom du modèle utilisé.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteTarget(null)} disabled={busy === 'delete'}>Annuler</Button>
-            <Button variant="destructive" onClick={() => void removeProvider()} loading={busy === 'delete'}>Supprimer</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
     </div>
-  )
-}
-
-function AddProviderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const router = useRouter()
-  const [name, setName] = useState('')
-  const [baseUrl, setBaseUrl] = useState('https://api.openai.com/v1')
-  const [apiKey, setApiKey] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  async function submit() {
-    setBusy(true)
-    try {
-      const result = await createOpenAiProviderFn({ data: { name: name.trim(), baseUrl: baseUrl.trim(), apiKey: apiKey.trim() } })
-      if (result.detectionError) {
-        toast.warning('Fournisseur enregistré, détection incomplète', { description: result.detectionError })
-      } else {
-        toast.success('Fournisseur ajouté et modèles détectés')
-      }
-      setName('')
-      setApiKey('')
-      onOpenChange(false)
-      await router.invalidate()
-    } catch (error) {
-      toast.error('Ajout impossible', { description: error instanceof Error ? error.message : 'Erreur inconnue.' })
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(value) => !busy && onOpenChange(value)}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Ajouter un fournisseur compatible OpenAI</DialogTitle>
-          <DialogDescription>L’URL doit exposer /models et /chat/completions. La clé est chiffrée avant d’être enregistrée.</DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-1 gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="provider-name">Nom</Label>
-            <Input id="provider-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Ollama interne, OpenAI, Azure…" />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="provider-url">URL de base</Label>
-            <Input id="provider-url" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://api.exemple.tld/v1" />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="provider-key">Clé API</Label>
-            <Input id="provider-key" type="password" value={apiKey} onChange={(event) => setApiKey(event.target.value)} autoComplete="off" placeholder="sk-…" />
-          </div>
-          <p className="flex items-start gap-2 rounded-md border border-border bg-surface-1 px-3 py-2 text-xs leading-5 text-muted-foreground">
-            <KeyRound aria-hidden className="mt-0.5 size-3.5 shrink-0 text-brand" />
-            Chiffrement AES-GCM au repos. La clé n’est jamais renvoyée au client, jamais journalisée, et les erreurs du fournisseur sont expurgées.
-          </p>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>Annuler</Button>
-          <Button onClick={() => void submit()} loading={busy} disabled={name.trim().length < 2 || !baseUrl.trim() || apiKey.trim().length < 8}>Ajouter et détecter</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   )
 }
 

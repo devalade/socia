@@ -32,10 +32,10 @@ Ne pas ajouter de `wrangler.jsonc`, ne pas utiliser `cf deploy` pour l’applica
 | Surface | Statut | Preuve / limite |
 | --- | --- | --- |
 | Authentification | Utilisée | Better Auth email + mot de passe, sessions D1, rate limit. Testée en local. |
-| IA | Utilisée | `void/ai`, `ai.models()` et `ai.run()` réels avec Workers AI. Modèle `@cf/meta/llama-3.3-70b-instruct-fp8-fast`. |
+| IA | Utilisée | `void/ai` et `ai.run()` réels avec Workers AI. Modèle unique **Deepseek v4.1 flash** (`@cf/deepseek-ai/deepseek-v4.1-flash-1017`). |
 | D1 | Utilisée | Migrations appliquées, CRUD investigation/analyse/requête/rapport, audit. |
 | Workers AI | Utilisée | Binding détecté par `/health` (`aiBinding: true`), modèle réel testé. |
-| Fournisseurs compatibles OpenAI | Utilisée | `/models` et `/chat/completions`, clé chiffrée AES-GCM. |
+| Fournisseurs compatibles OpenAI | Supporté, non exposé | `/models` et `/chat/completions`, clé chiffrée AES-GCM. Aucun sélecteur ni catalogue de modèles dans l’interface. |
 | Email, queues, cron, WebSockets | Non utilisées | Hors périmètre. |
 | R2 / stockage fichier | Non utilisé | Les fichiers JSON sont lus côté navigateur, puis validés et stockés en D1 dans la limite de taille. |
 
@@ -65,6 +65,7 @@ L’IA en développement est distante : `pnpm void connect --platform cloudflare
 
 ## Design system
 
+- Modèle unique : **Deepseek v4.1 flash** (`@cf/deepseek-ai/deepseek-v4.1-flash-1017`), servi par Workers AI. Aucun catalogue ni sélecteur de modèle n’est exposé.
 - Direction: **Signal Room**. The premium-react measurements applied to the SOCIA security console. Geist for every UI and display surface. Geist Mono only for KQL, ids, timestamps and raw JSON. Paper-white primary actions in dark, ink primary in light. Vermilion is a signal colour: focus, active navigation, critical data, charts and the brand mark. Warm ink surfaces, one hairline ring, no glows, no serif, no numbered masthead.
 - Shell: 256px sidebar, 56px header, 1200px content max. The dashboard is a measured KPI, trend and table surface. The investigation is a tabbed case workspace with a context rail. Authentication is a centred 400px column.
 - Controls: 36px product, 40px auth and marketing, 44px primary on phones. Labels 13/500, body 14, meta 12. No 9px uppercase mono labels. Control radii 8px, surfaces 12 to 16px.

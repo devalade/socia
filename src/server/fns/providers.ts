@@ -1,8 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
-import { env } from 'void/env'
 import { z } from 'zod'
 import { requireActor, requireAdmin } from '../session'
-import { ensureModelsDetected, ensureWorkersAiProvider, listModels, listProviders } from '../ai/providers'
+import { ensurePinnedModel } from '../ai/providers'
 import {
   adminProviderData,
   createOpenAiProvider,
@@ -14,15 +13,7 @@ import {
 
 export const getModelOptionsFn = createServerFn({ method: 'GET' }).handler(async () => {
   await requireActor()
-  await ensureWorkersAiProvider()
-  await ensureModelsDetected()
-  const models = await listModels()
-  const providers = await listProviders()
-  return {
-    models,
-    providers: providers.filter((provider) => provider.isActive),
-    defaultModelId: env.AI_DEFAULT_MODEL,
-  }
+  return { model: await ensurePinnedModel() }
 })
 
 export const getAdminProvidersFn = createServerFn({ method: 'GET' }).handler(async () =>
